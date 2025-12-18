@@ -189,6 +189,9 @@ composer dump-autoload -o --no-interaction
 php artisan key:generate --force || true
 php artisan optimize:clear || true
 
+echo ">> Creating storage symlink..."
+php artisan storage:link || true
+
 echo ">> Running migrations..."
 php artisan migrate --force || true
 

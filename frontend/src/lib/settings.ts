@@ -40,11 +40,14 @@ export async function getPublicSettings(cookie?: string): Promise<PublicSettings
 }
 
 /**
- * Get a specific public setting value with fallback
+ * Get a specific public setting value with fallback chain:
+ * 1. Database setting (from settings object)
+ * 2. Environment variable (import.meta.env)
+ * 3. Provided default value
  *
- * @param settings - The settings object
+ * @param settings - The settings object from getPublicSettings()
  * @param key - The setting key
- * @param defaultValue - Default value if setting not found
+ * @param defaultValue - Default value if setting not found in DB or env
  * @returns The setting value or default
  */
 export function getSetting<T = any>(
@@ -52,5 +55,17 @@ export function getSetting<T = any>(
   key: string,
   defaultValue: T
 ): T {
-  return settings[key] !== undefined ? settings[key] : defaultValue
+  // First, check if setting exists in database
+  if (settings[key] !== undefined) {
+    return settings[key]
+  }
+
+  // Second, check environment variable
+  const envValue = import.meta.env[key]
+  if (envValue !== undefined) {
+    return envValue as T
+  }
+
+  // Finally, use provided default
+  return defaultValue
 }

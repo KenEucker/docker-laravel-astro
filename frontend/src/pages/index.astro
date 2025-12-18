@@ -11,7 +11,7 @@ if (maybeRedirect) return maybeRedirect
 // Fetch public settings server-side
 const cookie = Astro.request.headers.get('cookie') ?? ''
 const settings = await getPublicSettings(cookie)
-const APP_NAME = getSetting(settings, 'APP_NAME', import.meta.env.APP_NAME ?? 'LarAstro')
+const APP_NAME = getSetting(settings, 'APP_NAME', 'LarAstro')
 
 ---
 

@@ -12,15 +12,19 @@ function getCsrfToken(): string | null {
 
 export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    Accept: 'application/json',
     ...options.headers,
   };
+
+  // Only set JSON content-type when we actually send a body
+  if (options.body && !(headers as any)['Content-Type']) {
+    (headers as any)['Content-Type'] = 'application/json';
+  }
 
   // Add CSRF token if available
   const csrfToken = getCsrfToken();
   if (csrfToken) {
-    headers['X-XSRF-TOKEN'] = csrfToken;
+    (headers as any)['X-XSRF-TOKEN'] = csrfToken;
   }
 
   const response = await fetch(`${API_URL}${endpoint}`, {
@@ -29,18 +33,45 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
     credentials: 'include',
   });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Request failed' }));
-    throw new Error(error.message || `HTTP error! status: ${response.status}`);
+  // 204/205 = empty body by definition
+  if (response.status === 204 || response.status === 205) {
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return null;
   }
 
-  return response.json();
+  const contentType = response.headers.get('content-type') || '';
+  const raw = await response.text(); // read once
+
+  // Not OK: try to extract message from JSON, otherwise show raw
+  if (!response.ok) {
+    if (contentType.includes('application/json')) {
+      try {
+        const data = raw ? JSON.parse(raw) : {};
+        throw new Error(data.message || `HTTP error! status: ${response.status}`);
+      } catch {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+    }
+    throw new Error(raw || `HTTP error! status: ${response.status}`);
+  }
+
+  // OK but empty
+  if (!raw) return null;
+
+  // OK and JSON
+  if (contentType.includes('application/json')) {
+    return JSON.parse(raw);
+  }
+
+  // OK but not JSON (helpful for debugging)
+  return raw;
 }
 
 export async function login(email: string, password: string) {
   // Get CSRF cookie first
   await fetch(`${API_URL}/sanctum/csrf-cookie`, {
     credentials: 'include',
+    headers: { Accept: 'application/json' },
   });
 
   return apiRequest('/login', {
@@ -52,6 +83,7 @@ export async function login(email: string, password: string) {
 export async function register(name: string, email: string, password: string, password_confirmation: string) {
   await fetch(`${API_URL}/sanctum/csrf-cookie`, {
     credentials: 'include',
+    headers: { Accept: 'application/json' },
   });
 
   return apiRequest('/register', {

@@ -1,25 +1,12 @@
 ---
 // src/pages/login.astro
-import Layout from '../layouts/Layout.astro';
-import Navbar from '../components/Navbar.astro';
+import Layout from '../layouts/Layout.astro'
+import Navbar from '../components/Navbar.astro'
+import { redirectIfAuthed } from '../lib/auth'
 
-// Check if user is already authenticated by making a request to the backend
-let isAuthenticated = false;
-try {
-  const response = await fetch(`${import.meta.env.PUBLIC_API_URL || 'http://localhost:8000'}/api/user`, {
-    credentials: 'include',
-    headers: {
-      'Accept': 'application/json',
-    },
-  });
-  isAuthenticated = response.ok;
-} catch (error) {
-  // User not authenticated
-}
+const maybeRedirect = await redirectIfAuthed(Astro)
+if (maybeRedirect) return maybeRedirect
 
-if (isAuthenticated) {
-  return Astro.redirect('/dashboard');
-}
 ---
 
 <Layout title="Login">

@@ -1,7 +1,6 @@
 ---
 // src/pages/dashboard.astro
 import Layout from '../layouts/Layout.astro'
-import Navbar from '../components/Navbar.astro'
 import { requireAuth } from '../lib/auth'
 
 const user = await requireAuth(Astro)
@@ -11,9 +10,8 @@ if (user.redirected === false) {
 const error = null
 ---
 
-<Layout title="Dashboard">
+<Layout title="Dashboard" isLoggedIn={true} isAdmin={user.roles.includes('admin')}>
   <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
-  <Navbar showAuthButtons={false} showLogout={true} />
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {error ? (

@@ -1,0 +1,107 @@
+---
+// src/pages/admin/users.astro
+import Layout from '../../../layouts/Layout.astro'
+import { requireAdmin } from '../../../lib/auth'
+
+const admin = await requireAdmin(Astro)
+if (admin.redirected === false) {
+  return admin
+}
+
+// Hybrid approach:
+// - SSR blocks non-admins immediately (above)
+// - Table data loads client-side (below) using browser cookies automatically
+---
+
+<Layout title="Admin · Users" isLoggedIn={true}>
+  <div class="max-w-5xl mx-auto px-6 py-10">
+    <h1 class="text-2xl font-bold mb-2">User Management</h1>
+    <p class="text-sm text-gray-600 dark:text-gray-300 mb-6">
+      Signed in as <strong>{admin.email}</strong>
+    </p>
+
+    <div id="status" class="mb-4 text-sm text-gray-600 dark:text-gray-300"></div>
+
+    <div class="overflow-x-auto rounded-lg border">
+      <table class="w-full border-collapse">
+        <thead class="bg-gray-100 dark:bg-gray-800">
+          <tr>
+            <th class="text-left px-4 py-2">ID</th>
+            <th class="text-left px-4 py-2">Name</th>
+            <th class="text-left px-4 py-2">Email</th>
+            <th class="text-left px-4 py-2">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="users-body">
+          <tr><td class="px-4 py-3" colspan="3">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const API = import.meta.env.PUBLIC_API_URL || 'http://localhost:8000'
+
+    const statusEl = document.getElementById('status')
+    const tbody = document.getElementById('users-body')
+
+    const setStatus = (msg, isError = false) => {
+      statusEl.textContent = msg
+      statusEl.className = isError
+        ? 'mb-4 text-sm text-red-600'
+        : 'mb-4 text-sm text-gray-600 dark:text-gray-300'
+    }
+
+    const renderUsers = (users) => {
+      tbody.innerHTML = ''
+      for (const u of users) {
+        const tr = document.createElement('tr')
+        tr.className = 'border-t'
+        tr.innerHTML = `
+          <td class="px-4 py-2">${u.id}</td>
+          <td class="px-4 py-2">${u.name ?? ''}</td>
+          <td class="px-4 py-2">${u.email ?? ''}</td>
+          <td class="px-4 py-2"><a class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700" href="/admin/users/${u.id}">Edit</a></td>
+        `
+        tbody.appendChild(tr)
+      }
+      if (!users.length) {
+        tbody.innerHTML = `<tr><td class="px-4 py-3" colspan="3">No users found.</td></tr>`
+      }
+    }
+
+    const main = async () => {
+      try {
+        // No CSRF needed for GET
+        const res = await fetch(`${API}/api/admin/users`, {
+          credentials: 'include',
+          headers: { accept: 'application/json' },
+        })
+
+        if (res.status === 401) {
+          window.location.href = '/login'
+          return
+        }
+
+        if (res.status === 403) {
+          window.location.href = '/'
+          return
+        }
+
+        console.log(res)
+        if (!res.ok) {
+          setStatus(`Failed to load users (${res.status})`, true)
+          return
+        }
+
+        const users = await res.json()
+        renderUsers(users)
+        setStatus(`Loaded ${users.length} users.`)
+      } catch (err) {
+        setStatus(`Error: ${err?.message ?? err}`, true)
+      }
+    }
+
+    main()
+  </script>
+</Layout>

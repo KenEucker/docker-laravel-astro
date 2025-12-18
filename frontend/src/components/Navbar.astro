@@ -3,9 +3,10 @@
 interface Props {
   showAuthButtons?: boolean;
   showLogout?: boolean;
+  isAdmin?: boolean;
 }
 
-const { showAuthButtons = false, showLogout = false } = Astro.props;
+const { showAuthButtons = false, showLogout = false, isAdmin = false } = Astro.props;
 ---
 
 <nav class="bg-white dark:bg-gray-800 shadow-md transition-colors duration-200">
@@ -20,6 +21,15 @@ const { showAuthButtons = false, showLogout = false } = Astro.props;
 
       <!-- Navigation Links & Dark Mode Toggle -->
       <div class="flex items-center gap-4">
+        {isAdmin && (
+          <a
+            href="/admin"
+            class="bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          >
+            Admin
+          </a>
+        )}
+
         {showAuthButtons && (
           <>
             <a

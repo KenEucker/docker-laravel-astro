@@ -5,11 +5,20 @@ const API_INTERNAL = import.meta.env.API_INTERNAL_URL || 'http://laravel:8000'
 const FRONTEND_ORIGIN =
   import.meta.env.PUBLIC_SITE_URL || 'http://localhost:3000'
 
+export const requireAdmin = async (Astro: any, redirectTo = '/login') => {
+  const user = await requireAuth(Astro)
+
+  const roles = Array.isArray(user?.roles) ? user.roles : []
+    console.log('admin user:', user)
+  if (!roles.includes('admin')) return Astro.redirect(redirectTo)
+
+  return user
+}
+
 export const requireUser = async (Astro: any) => {
   const cookie = Astro.request.headers.get('cookie') ?? ''
 
-  console.log('Fetching user with cookies:', `${API_INTERNAL}/api/user`)    
-  const res = await fetch(`${API_INTERNAL}/api/user`, {
+  const res = await fetch(`${API_INTERNAL}/api/me`, {
     headers: {
       Accept: 'application/json',
       'X-Requested-With': 'XMLHttpRequest',

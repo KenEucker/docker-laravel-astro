@@ -1,13 +1,19 @@
 ---
 // src/components/Navbar.astro
+import { getPublicSettings, getSetting } from '../lib/settings'
+
 interface Props {
   showAuthButtons?: boolean;
   showLogout?: boolean;
   isAdmin?: boolean;
 }
-const APP_NAME = import.meta.env.APP_NAME ?? 'LarAstro';
 
 const { showAuthButtons = false, showLogout = false, isAdmin = false } = Astro.props;
+
+// Fetch public settings server-side
+const cookie = Astro.request.headers.get('cookie') ?? ''
+const settings = await getPublicSettings(cookie)
+const APP_NAME = getSetting(settings, 'APP_NAME', 'LarAstro')
 ---
 
 <nav class="bg-white dark:bg-gray-800 shadow-md transition-colors duration-200">

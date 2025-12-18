@@ -4,6 +4,7 @@ import Layout from '../layouts/Layout.astro'
 import Navbar from '../components/Navbar.astro'
 import { redirectIfAuthed } from '../lib/auth'
 
+// Check if user is already authenticated
 const maybeRedirect = await redirectIfAuthed(Astro)
 if (maybeRedirect) return maybeRedirect
 

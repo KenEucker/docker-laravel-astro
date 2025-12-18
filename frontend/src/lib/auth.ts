@@ -9,7 +9,6 @@ export const requireAdmin = async (Astro: any, redirectTo = '/login') => {
   const user = await requireAuth(Astro)
 
   const roles = Array.isArray(user?.roles) ? user.roles : []
-    console.log('admin user:', user)
   if (!roles.includes('admin')) return Astro.redirect(redirectTo)
 
   return user
@@ -43,3 +42,13 @@ export const redirectIfAuthed = async (Astro: any, redirectTo = '/dashboard') =>
   if (user) return Astro.redirect(redirectTo)
   return null
 }
+
+export const ensureCsrfCookie = async () => {
+  await fetch(`${API_PUBLIC}/sanctum/csrf-cookie`, {
+    credentials: "include",
+    headers: {
+      accept: "application/json",
+      "x-requested-with": "XMLHttpRequest",
+    },
+  });
+};

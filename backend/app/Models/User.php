@@ -23,6 +23,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'avatar_path',
     ];
 
     /**
@@ -44,6 +45,15 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+    
+    /**
+     * The attributes that should be appended.
+     *
+     * @var array<string, string>
+     */
+    protected $appends = [
+      'avatar_url',
+    ];
 
     /**
      * Send the password reset notification.
@@ -54,5 +64,11 @@ class User extends Authenticatable
     public function sendPasswordResetNotification($token)
     {
         $this->notify(new ResetPasswordNotification($token));
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+      if (!$this->avatar_path) return null;
+      return url(Storage::disk('public')->url($this->avatar_path));
     }
 }

@@ -5,6 +5,7 @@ interface Props {
   showLogout?: boolean;
   isAdmin?: boolean;
 }
+const APP_NAME = import.meta.env.APP_NAME ?? 'LarAstro';
 
 const { showAuthButtons = false, showLogout = false, isAdmin = false } = Astro.props;
 ---
@@ -15,7 +16,7 @@ const { showAuthButtons = false, showLogout = false, isAdmin = false } = Astro.p
       <!-- Logo/Brand -->
       <div class="flex items-center">
         <a href="/" class="text-xl font-bold text-gray-900 dark:text-white">
-          LarAstro
+          {APP_NAME}
         </a>
       </div>
 

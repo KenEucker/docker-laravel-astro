@@ -2,6 +2,7 @@
 // src/pages/index.astro
 import Layout from '../layouts/Layout.astro';
 import { redirectIfAuthed } from '../lib/auth'
+const APP_NAME = import.meta.env.APP_NAME ?? 'LarAstro';
 
 // Check if user is already authenticated
 const maybeRedirect = await redirectIfAuthed(Astro)
@@ -9,13 +10,13 @@ if (maybeRedirect) return maybeRedirect
 
 ---
 
-<Layout title="Welcome to LarAstro">
+<Layout title={`Welcome to ${APP_NAME}`}>
   <div class="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
       <!-- Hero Section -->
       <div class="space-y-8">
         <h1 class="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white">
-          Welcome to <span class="text-blue-600 dark:text-blue-400">LarAstro</span>
+          Welcome to <span class="text-blue-600 dark:text-blue-400">{APP_NAME}</span>
         </h1>
 
         <p class="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">

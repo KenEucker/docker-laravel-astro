@@ -1,3 +1,5 @@
+import { ensureCsrfCookie } from "./auth";
+
 // src/lib/api.ts
 const API_URL = import.meta.env.PUBLIC_API_URL || "http://localhost:8000";
 
@@ -73,12 +75,7 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
 }
 
 export async function login(email: string, password: string) {
-  // Get CSRF cookie first
-  await fetch(`${API_URL}/sanctum/csrf-cookie`, {
-    credentials: "include",
-    headers: { Accept: "application/json" },
-  });
-
+  await ensureCsrfCookie()
   return apiRequest("/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
@@ -91,10 +88,8 @@ export async function register(
   password: string,
   password_confirmation: string
 ) {
-  await fetch(`${API_URL}/sanctum/csrf-cookie`, {
-    credentials: "include",
-    headers: { Accept: "application/json" },
-  });
+  await ensureCsrfCookie()
+
 
   return apiRequest("/register", {
     method: "POST",
@@ -118,12 +113,7 @@ export async function getEvents() {
 
 // Password management functions
 export async function requestPasswordReset(email: string) {
-  await fetch(`${API_URL}/sanctum/csrf-cookie`, {
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-    },
-  });
+  await ensureCsrfCookie()
 
   return apiRequest("/forgot-password", {
     method: "POST",
@@ -139,14 +129,7 @@ export async function resetPassword(
   password_confirmation: string,
   token: string
 ) {
-  await fetch(`${API_URL}/sanctum/csrf-cookie`, {
-    credentials: "include",
-    headers: {
-      Accept: "application/json",
-      Origin: API_URL,
-      Referer: `${API_URL}/`,
-    },
-  });
+  await ensureCsrfCookie()
 
   return apiRequest("/reset-password", {
     method: "POST",

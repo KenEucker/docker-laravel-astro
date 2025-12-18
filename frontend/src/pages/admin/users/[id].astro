@@ -35,7 +35,7 @@ const [user, roles, permissions] = await Promise.all([
 ]);
 ---
 
-<Layout title={`Edit User #${id}`} isLoggedIn={true}>
+<Layout title={`Edit User #${id}`} isLoggedIn={true} isLoggedIn={true} isAdmin={admin.roles.includes('admin')}>
   <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
     <main class="max-w-4xl mx-auto px-4 py-8">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -110,6 +110,7 @@ const [user, roles, permissions] = await Promise.all([
   </div>
 
   <script define:vars={{ apiBase, id }}>
+    import { ensureCsrfCookie } from "../../lib/auth";
     const form = document.getElementById("acl-form");
     const statusEl = document.getElementById("status");
 
@@ -121,16 +122,6 @@ const [user, roles, permissions] = await Promise.all([
     const getCookie = (name) => {
       const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
       return m ? decodeURIComponent(m[1]) : "";
-    };
-
-    const ensureCsrfCookie = async () => {
-      await fetch(`${apiBase}/sanctum/csrf-cookie`, {
-        credentials: "include",
-        headers: {
-          accept: "application/json",
-          "x-requested-with": "XMLHttpRequest",
-        },
-      });
     };
 
     form.addEventListener("submit", async (e) => {
@@ -155,7 +146,7 @@ const [user, roles, permissions] = await Promise.all([
             accept: "application/json",
             "content-type": "application/json",
             "x-requested-with": "XMLHttpRequest",
-            "x-xsrf-token": xsrf, // ✅ fixes 419
+            "x-xsrf-token": xsrf,
           },
           body: JSON.stringify(payload),
         });

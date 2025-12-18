@@ -1,0 +1,53 @@
+---
+const API = import.meta.env.PUBLIC_API_URL ?? "http://localhost:8000";
+---
+
+<form id="avatar-form" enctype="multipart/form-data">
+  <label>
+    Select avatar:
+    <input name="avatar" type="file" accept="image/*" />
+  </label>
+
+  <button type="submit">Upload</button>
+</form>
+
+<img id="avatar-preview" alt="Avatar preview" />
+
+<script define:vars={{ API }}>
+  const form = document.querySelector("#avatar-form");
+  const preview = document.querySelector("#avatar-preview");
+
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const fd = new FormData(form);
+    const file = fd.get("avatar");
+
+    if (!(file instanceof File) || file.size === 0) {
+      alert("Pick an image first.");
+      return;
+    }
+
+    await ensureCsrfCookie();
+
+    const res = await fetch(`${API}/api/user/avatar`, {
+      method: "PUT",
+      body: fd,
+      credentials: "include",
+      headers: {
+        "x-xsrf-token": getCookie("XSRF-TOKEN"),
+      },
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error(text);
+      alert("Upload failed. Check console.");
+      return;
+    }
+
+    const data = await res.json();
+    preview.src = data.avatar_url;
+  });
+</script>

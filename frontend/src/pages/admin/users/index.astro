@@ -13,7 +13,7 @@ if (admin.redirected === false) {
 // - Table data loads client-side (below) using browser cookies automatically
 ---
 
-<Layout title="Admin · Users" isLoggedIn={true}>
+<Layout title="Admin · Users" isLoggedIn={true} isAdmin={admin.roles.includes('admin')}>
   <div class="max-w-5xl mx-auto px-6 py-10">
     <h1 class="text-2xl font-bold mb-2">User Management</h1>
     <p class="text-sm text-gray-600 dark:text-gray-300 mb-6">

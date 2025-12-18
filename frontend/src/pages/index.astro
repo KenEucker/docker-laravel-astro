@@ -1,0 +1,108 @@
+---
+// src/pages/index.astro
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+
+// Check if user is already authenticated
+let isAuthenticated = false;
+try {
+  const response = await fetch(`${import.meta.env.PUBLIC_API_URL || 'http://localhost:8000'}/api/user`, {
+    credentials: 'include',
+    headers: {
+      'Accept': 'application/json',
+    },
+  });
+  isAuthenticated = response.ok;
+} catch (error) {
+  // User not authenticated
+}
+
+// Redirect to dashboard if already logged in
+if (isAuthenticated) {
+  return Astro.redirect('/dashboard');
+}
+---
+
+<Layout title="Welcome to LarAstro">
+  <Navbar showAuthButtons={true} />
+
+  <div class="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <!-- Hero Section -->
+      <div class="space-y-8">
+        <h1 class="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white">
+          Welcome to <span class="text-blue-600 dark:text-blue-400">LarAstro</span>
+        </h1>
+
+        <p class="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+          A modern full-stack starter template combining Laravel Breeze API backend with Astro frontend,
+          powered by Docker for seamless development.
+        </p>
+
+        <!-- Feature Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-all hover:shadow-lg">
+            <div class="text-blue-600 dark:text-blue-400 mb-4">
+              <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Fast & Modern</h3>
+            <p class="text-gray-600 dark:text-gray-400 text-sm">
+              Built with Astro for lightning-fast performance and modern development experience.
+            </p>
+          </div>
+
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-all hover:shadow-lg">
+            <div class="text-blue-600 dark:text-blue-400 mb-4">
+              <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Secure Authentication</h3>
+            <p class="text-gray-600 dark:text-gray-400 text-sm">
+              Laravel Breeze with Sanctum provides robust, session-based authentication.
+            </p>
+          </div>
+
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-all hover:shadow-lg">
+            <div class="text-blue-600 dark:text-blue-400 mb-4">
+              <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Docker Ready</h3>
+            <p class="text-gray-600 dark:text-gray-400 text-sm">
+              Fully containerized with Docker Compose for consistent development environments.
+            </p>
+          </div>
+        </div>
+
+        <!-- CTA Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mt-12">
+          <a
+            href="/login"
+            class="w-full sm:w-auto bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 px-8 py-3 rounded-lg text-lg font-medium transition-colors shadow-lg hover:shadow-xl"
+          >
+            Get Started
+          </a>
+          <a
+            href="/register"
+            class="w-full sm:w-auto bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 px-8 py-3 rounded-lg text-lg font-medium transition-colors border-2 border-gray-300 dark:border-gray-600"
+          >
+            Create Account
+          </a>
+        </div>
+
+        <!-- Info Section -->
+        <div class="mt-16 text-sm text-gray-500 dark:text-gray-400">
+          <p>Default credentials for testing:</p>
+          <p class="font-mono mt-2">
+            <span class="text-gray-700 dark:text-gray-300">admin@example.com</span> /
+            <span class="text-gray-700 dark:text-gray-300">change-me</span>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>

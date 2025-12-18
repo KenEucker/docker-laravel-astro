@@ -7,6 +7,12 @@ use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminAclController;
 use App\Http\Controllers\Admin\AdminSettingController;
 use App\Http\Controllers\User\UserAvatarController;
+use App\Models\Setting;
+
+// Public settings endpoint (no auth required)
+Route::get('/settings/public', function () {
+  return Setting::all(true);
+});
 
 Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
   $u = $request->user();

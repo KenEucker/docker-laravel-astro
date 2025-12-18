@@ -8,7 +8,6 @@ echo ">> Laravel entrypoint starting..."
 mkdir -p "$APP_DIR"
 
 # --- wait for DB (mysql) ---------------------------------------------------
-# We avoid relying on docker-compose command logic and just wait here.
 if [ "${DB_CONNECTION:-mysql}" = "mysql" ]; then
   echo ">> Waiting for MySQL at ${DB_HOST:-db}:${DB_PORT:-3306}..."
   for i in $(seq 1 60); do
@@ -41,16 +40,6 @@ else
 fi
 
 cd "$APP_DIR"
-
-# --- apply overrides (safe if missing/empty) -------------------------------
-# Mount your override folders at /overrides/app, /overrides/database, /overrides/routes, /overrides/config
-for d in app database routes config; do
-  if [ -d "/overrides/$d" ]; then
-    echo ">> Applying overrides: $d"
-    mkdir -p "$APP_DIR/$d"
-    cp -a "/overrides/$d/." "$APP_DIR/$d/" 2>/dev/null || true
-  fi
-done
 
 # --- ensure .env exists and has required keys ------------------------------
 if [ ! -f .env ]; then
@@ -105,6 +94,97 @@ if [ ! -d "vendor/laravel/breeze" ]; then
   composer install --no-interaction
 fi
 
+# --- spatie roles/permissions install (only once) --------------------------
+if [ ! -d "vendor/spatie/laravel-permission" ]; then
+  echo ">> Installing Spatie laravel-permission..."
+  composer require spatie/laravel-permission --no-interaction
+
+  php artisan vendor:publish \
+    --provider="Spatie\Permission\PermissionServiceProvider" \
+    --no-interaction || true
+
+  composer install --no-interaction
+fi
+
+# --- apply overrides (additive + *_custom append + seeders additive) ----
+apply_overrides_strict () {
+  echo ">> Applying overrides (additive + *_custom include + seeders additive)..."
+
+  for d in app database routes config; do
+    SRC="/overrides/$d"
+    [ -d "$SRC" ] || continue
+
+    # Special-case: seeders are additive (copy only if missing)
+    if [ "$d" = "database" ] && [ -d "$SRC/seeders" ]; then
+      echo ">> Additive: database/seeders"
+      mkdir -p "$APP_DIR/database/seeders"
+      find "$SRC/seeders" -type f | while read -r sf; do
+        rels="${sf#$SRC/seeders/}"
+        target_seeder="$APP_DIR/database/seeders/$rels"
+        if [ -f "$target_seeder" ]; then
+          echo ">> Skip seeder (exists): database/seeders/$rels"
+        else
+          echo ">> Copy seeder: database/seeders/$rels"
+          mkdir -p "$(dirname "$target_seeder")"
+          cp -f "$sf" "$target_seeder"
+        fi
+      done
+    fi
+
+    # 1) Sync overrides into the app:
+    #    - if target exists: overwrite
+    #    - if target missing: create (additive)
+    # This makes backend/app the source of truth.
+    find "$SRC" -type f ! -name "*_custom.php" | while read -r f; do
+      rel="${f#$SRC/}"
+      target="$APP_DIR/$d/$rel"
+
+      # Don’t double-handle seeders here (handled above)
+      if [ "$d" = "database" ] && printf "%s" "$rel" | grep -q "^seeders/"; then
+        continue
+      fi
+
+      echo ">> Sync: $d/$rel"
+      mkdir -p "$(dirname "$target")"
+      cp -f "$f" "$target"
+    done
+
+    # 2) *_custom.php files are additive:
+    #    - always copy them into the app
+    #    - ensure the corresponding base file requires them
+    find "$SRC" -type f -name "*_custom.php" | while read -r f; do
+      rel="${f#$SRC/}"
+      target="$APP_DIR/$d/$rel"
+
+      echo ">> Additive custom: $d/$rel"
+      mkdir -p "$(dirname "$target")"
+      cp -f "$f" "$target"
+
+      # Determine base file (api_custom.php -> api.php)
+      base_rel="$(printf "%s" "$rel" | sed 's/_custom\.php$/.php/')"
+      base="$APP_DIR/$d/$base_rel"
+
+      if [ -f "$base" ]; then
+        # Valid PHP: require __DIR__.'/api_custom.php';
+        require_line="require __DIR__.'/"$(basename "$rel")"';"
+
+        if ! grep -Fq "$require_line" "$base"; then
+          echo ">> Wiring $(basename "$rel") into $d/$base_rel"
+          printf "\n// auto-included from overrides\n%s\n" "$require_line" >> "$base"
+        fi
+      else
+        echo ">> Skip wiring (base missing): $d/$base_rel"
+      fi
+    done
+  done
+}
+
+apply_overrides_strict
+
+# New classes added via overrides need autoload refreshed
+echo ">> composer dump-autoload"
+composer dump-autoload -o --no-interaction
+
 # --- key, caches, migrate ---------------------------------------------------
 php artisan key:generate --force || true
 php artisan optimize:clear || true
@@ -112,22 +192,21 @@ php artisan optimize:clear || true
 echo ">> Running migrations..."
 php artisan migrate --force || true
 
-# --- optional default user --------------------------------------------------
-if [ "${SEED_DEFAULT_USER:-false}" = "true" ]; then
-  echo ">> Ensuring default user..."
-  php artisan tinker --execute="
-    \$email = getenv('DEFAULT_USER_EMAIL');
-    \$name = getenv('DEFAULT_USER_NAME') ?: 'Admin';
-    \$pass = getenv('DEFAULT_USER_PASSWORD') ?: '';
-    if (!\$email || !\$pass) { echo 'Default user env missing\n'; exit(0); }
-    \\App\\Models\\User::updateOrCreate(
-      ['email' => \$email],
-      ['name' => \$name, 'password' => \\Illuminate\\Support\\Facades\\Hash::make(\$pass)]
-    );
-    echo 'Default user ensured: '.\$email.\"\\n\";
-  " || true
+# --- seeders (only once) ---------------------------------------------------
+SEED_ONCE_FILE="$APP_DIR/storage/app/.seeders_ran"
+mkdir -p "$APP_DIR/storage/app" || true
+
+if [ ! -f "$SEED_ONCE_FILE" ]; then
+  echo ">> Running seeders (first boot only)..."
+
+  # IMPORTANT: remove the `|| true` while debugging so you can see real failures.
+  php artisan db:seed --class="Database\\Seeders\\RolesAndPermissionsSeeder" --force
+  php artisan db:seed --class="Database\\Seeders\\DefaultAdminUserSeeder" --force
+
+  touch "$SEED_ONCE_FILE"
+  echo ">> Seeders complete. Marker created: $SEED_ONCE_FILE"
 else
-  echo ">> SEED_DEFAULT_USER=false; skipping default user."
+  echo ">> Seeders already ran (marker exists): $SEED_ONCE_FILE"
 fi
 
 echo ">> Starting Laravel on 0.0.0.0:8000"

@@ -4,9 +4,10 @@ interface Props {
   showAuthButtons?: boolean;
   showLogout?: boolean;
   user?: { name: string; email: string } | null;
+  isAdmin?: boolean;
 }
 
-const { showAuthButtons = false, showLogout = false, user = null } = Astro.props;
+const { showAuthButtons = false, showLogout = false, user = null, isAdmin = false } = Astro.props;
 ---
 
 <nav class="bg-white dark:bg-gray-800 shadow-md transition-colors duration-200">
@@ -21,6 +22,15 @@ const { showAuthButtons = false, showLogout = false, user = null } = Astro.props
 
       <!-- Navigation Links & Dark Mode Toggle -->
       <div class="flex items-center gap-4">
+        {isAdmin && (
+          <a
+            href="/admin"
+            class="bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          >
+            Admin
+          </a>
+        )}
+
         {showAuthButtons && (
           <>
             <a
@@ -59,7 +69,7 @@ const { showAuthButtons = false, showLogout = false, user = null } = Astro.props
           <button
             id="logoutBtn"
             type="button"
-            class="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+            class="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer"
           >
             Logout
           </button>
@@ -99,7 +109,22 @@ const { showAuthButtons = false, showLogout = false, user = null } = Astro.props
     </div>
   </div>
 </nav>
+<script>
+  import { logout } from '../lib/api';
 
+  // Logout functionality
+  const logoutBtn = document.getElementById('logoutBtn');
+
+  logoutBtn?.addEventListener('click', async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+
+    window.location.href = '/login';
+  });
+</script>
 <script is:inline>
   (function() {
     function initThemeToggle() {

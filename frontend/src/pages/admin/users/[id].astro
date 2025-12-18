@@ -1,0 +1,174 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import { requireAdmin } from "../../../lib/auth";
+
+const admin = await requireAdmin(Astro);
+if (admin.redirected === false) {
+  return admin;
+}
+const { id } = Astro.params;
+
+const apiBase = import.meta.env.PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+const API_INTERNAL = import.meta.env.API_INTERNAL_URL || "http://laravel:8000";
+
+const cookie = Astro.request.headers.get("cookie") ?? "";
+
+const fetchJson = async (path: string) => {
+  const res = await fetch(`${API_INTERNAL}${path}`, {
+    headers: {
+      cookie,
+      accept: "application/json",
+      "x-requested-with": "XMLHttpRequest",
+      origin: "http://localhost:3000",
+      referer: "http://localhost:3000/",
+    },
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json();
+};
+
+const [user, roles, permissions] = await Promise.all([
+  fetchJson(`/api/admin/users/${id}`),
+  fetchJson(`/api/admin/roles`),
+  fetchJson(`/api/admin/permissions`),
+]);
+---
+
+<Layout title={`Edit User #${id}`} isLoggedIn={true}>
+  <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <main class="max-w-4xl mx-auto px-4 py-8">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h1 class="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">
+          Edit User
+        </h1>
+
+        <p class="text-sm text-gray-600 dark:text-gray-300 mb-6">
+          {user.name} — {user.email}
+        </p>
+
+        <form id="acl-form" class="space-y-8">
+          <section>
+            <h2
+              class="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100"
+            >
+              Roles
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {
+                roles.map((r) => (
+                  <label class="flex items-center gap-2 text-gray-800 dark:text-gray-200">
+                    <input
+                      type="checkbox"
+                      name="roles"
+                      value={r.name}
+                      checked={user.roles.includes(r.name)}
+                    />
+                    <span>{r.name}</span>
+                  </label>
+                ))
+              }
+            </div>
+          </section>
+
+          <section>
+            <h2
+              class="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100"
+            >
+              Permissions
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {
+                permissions.map((p) => (
+                  <label class="flex items-center gap-2 text-gray-800 dark:text-gray-200">
+                    <input
+                      type="checkbox"
+                      name="permissions"
+                      value={p.name}
+                      checked={user.permissions.includes(p.name)}
+                    />
+                    <span>{p.name}</span>
+                  </label>
+                ))
+              }
+            </div>
+          </section>
+
+          <div class="flex items-center gap-3">
+            <button
+              type="submit"
+              class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+            >
+              Save
+            </button>
+            <span id="status" class="text-sm text-gray-700 dark:text-gray-300"
+            ></span>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script define:vars={{ apiBase, id }}>
+    const form = document.getElementById("acl-form");
+    const statusEl = document.getElementById("status");
+
+    const getCheckedValues = (name) =>
+      Array.from(form.querySelectorAll(`input[name="${name}"]:checked`)).map(
+        (x) => x.value
+      );
+
+    const getCookie = (name) => {
+      const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+      return m ? decodeURIComponent(m[1]) : "";
+    };
+
+    const ensureCsrfCookie = async () => {
+      await fetch(`${apiBase}/sanctum/csrf-cookie`, {
+        credentials: "include",
+        headers: {
+          accept: "application/json",
+          "x-requested-with": "XMLHttpRequest",
+        },
+      });
+    };
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      statusEl.textContent = "Saving...";
+
+      try {
+        await ensureCsrfCookie();
+
+        const xsrf = getCookie("XSRF-TOKEN");
+        if (!xsrf) throw new Error("Missing XSRF-TOKEN cookie (CSRF not set)");
+
+        const payload = {
+          roles: getCheckedValues("roles"),
+          permissions: getCheckedValues("permissions"),
+        };
+
+        const res = await fetch(`${apiBase}/api/admin/users/${id}`, {
+          method: "PUT",
+          credentials: "include",
+          headers: {
+            accept: "application/json",
+            "content-type": "application/json",
+            "x-requested-with": "XMLHttpRequest",
+            "x-xsrf-token": xsrf, // ✅ fixes 419
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok)
+          throw new Error(data?.message || `${res.status} ${res.statusText}`);
+
+        statusEl.textContent = "Saved ✅";
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = `Error: ${err.message || err}`;
+      }
+    });
+  </script>
+</Layout>

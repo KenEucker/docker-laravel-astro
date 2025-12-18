@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminAclController;
+use App\Http\Controllers\Admin\AdminSettingController;
 use App\Http\Controllers\User\UserAvatarController;
 
 Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
@@ -45,4 +46,11 @@ Route::middleware(['auth:sanctum', RoleMiddleware::class . ':admin'])->prefix('a
 
   Route::get('/roles', [AdminAclController::class, 'roles']);
   Route::get('/permissions', [AdminAclController::class, 'permissions']);
+
+  Route::get('/settings', [AdminSettingController::class, 'index']);
+  Route::get('/settings/{setting}', [AdminSettingController::class, 'show']);
+  Route::post('/settings', [AdminSettingController::class, 'store']);
+  Route::put('/settings/{setting}', [AdminSettingController::class, 'update']);
+  Route::delete('/settings/{setting}', [AdminSettingController::class, 'destroy']);
+  Route::get('/settings/{key}/value', [AdminSettingController::class, 'getValue']);
 });

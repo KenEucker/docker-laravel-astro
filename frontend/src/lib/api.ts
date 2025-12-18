@@ -105,3 +105,44 @@ export async function getUser() {
 export async function getEvents() {
   return apiRequest('/api/events');
 }
+
+// Password management functions
+export async function requestPasswordReset(email: string) {
+  await fetch(`${API_URL}/sanctum/csrf-cookie`, {
+    credentials: 'include',
+    headers: { Accept: 'application/json' },
+  });
+
+  return apiRequest('/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function resetPassword(
+  email: string,
+  password: string,
+  password_confirmation: string,
+  token: string
+) {
+  await fetch(`${API_URL}/sanctum/csrf-cookie`, {
+    credentials: 'include',
+    headers: { Accept: 'application/json' },
+  });
+
+  return apiRequest('/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ email, password, password_confirmation, token }),
+  });
+}
+
+export async function changePassword(
+  current_password: string,
+  password: string,
+  password_confirmation: string
+) {
+  return apiRequest('/password', {
+    method: 'PUT',
+    body: JSON.stringify({ current_password, password, password_confirmation }),
+  });
+}

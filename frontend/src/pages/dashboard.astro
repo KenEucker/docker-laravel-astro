@@ -131,6 +131,11 @@ const avatarUrl =
     const avatarRemoveBtn = document.getElementById('avatarRemoveBtn')
     const avatarStatus = document.getElementById('avatarStatus')
 
+    const getCookie = (name) => {
+      const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))
+      return m ? decodeURIComponent(m[1]) : ''
+    }
+
     const setStatus = (msg) => {
       if (avatarStatus) avatarStatus.textContent = msg ?? ''
     }
@@ -189,7 +194,7 @@ const avatarUrl =
           body: fd,
           credentials: 'include',
           headers: {
-            'X-XSRF-TOKEN': document.cookie.split('; ').find(row => row.startsWith('XSRF-TOKEN='))?.split('=')[1] || '',
+            'X-XSRF-TOKEN': getCookie('XSRF-TOKEN'),
           },
         })
 
@@ -220,7 +225,7 @@ const avatarUrl =
           method: 'DELETE',
           credentials: 'include',
           headers: {
-            'X-XSRF-TOKEN': document.cookie.split('; ').find(row => row.startsWith('XSRF-TOKEN='))?.split('=')[1] || '',
+            'X-XSRF-TOKEN': getCookie('XSRF-TOKEN'),
           },
         })
 

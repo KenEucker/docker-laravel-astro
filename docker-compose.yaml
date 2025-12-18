@@ -34,6 +34,7 @@ services:
     volumes:
       # Full Laravel app lives here (persistent)
       - laravel_app:/var/www/html/app
+      - laravel_uploads:/var/www/html/app/storage/app/public
 
       # OPTIONAL: drop files you want to override into ./backend/overrides/*
       # Your backend entrypoint can copy these into the app volume.
@@ -68,4 +69,5 @@ services:
 volumes:
   dbdata:
   laravel_app:
+  laravel_uploads:
   astro_node_modules:

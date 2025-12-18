@@ -81,7 +81,22 @@ const { showAuthButtons = false, showLogout = false } = Astro.props;
     </div>
   </div>
 </nav>
+<script>
+  import { logout } from '../lib/api';
 
+  // Logout functionality
+  const logoutBtn = document.getElementById('logoutBtn');
+
+  logoutBtn?.addEventListener('click', async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+
+    window.location.href = '/login';
+  });
+</script>
 <script is:inline>
   (function() {
     function initThemeToggle() {

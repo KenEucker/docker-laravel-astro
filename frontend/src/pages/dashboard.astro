@@ -1,11 +1,14 @@
 ---
 // src/pages/dashboard.astro
-import Layout from '../layouts/Layout.astro';
-import Navbar from '../components/Navbar.astro';
-import { requireAuth } from '../lib/auth';
+import Layout from '../layouts/Layout.astro'
+import Navbar from '../components/Navbar.astro'
+import { requireAuth } from '../lib/auth'
 
-const user = await requireAuth(Astro) // redirects if not logged in
-const error = null;
+const user = await requireAuth(Astro)
+if (user.redirected === false) {
+  return user
+}
+const error = null
 ---
 
 <Layout title="Dashboard">
@@ -45,21 +48,4 @@ const error = null;
       )}
     </main>
   </div>
-
-  <script>
-    import { logout } from '../lib/api';
-
-    // Logout functionality
-    const logoutBtn = document.getElementById('logoutBtn');
-
-    logoutBtn?.addEventListener('click', async () => {
-      try {
-        await logout();
-      } catch (error) {
-        console.error('Logout error:', error);
-      }
-
-      window.location.href = '/login';
-    });
-  </script>
 </Layout>

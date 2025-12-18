@@ -23,8 +23,6 @@ export const requireUser = async (Astro: any) => {
       Accept: 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
       Cookie: cookie,
-
-      // Helps Sanctum treat it as a SPA request
       Origin: FRONTEND_ORIGIN,
       Referer: `${FRONTEND_ORIGIN}/`,
     },

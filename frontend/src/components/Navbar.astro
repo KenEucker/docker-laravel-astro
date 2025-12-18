@@ -3,11 +3,10 @@
 interface Props {
   showAuthButtons?: boolean;
   showLogout?: boolean;
-  user?: { name: string; email: string } | null;
   isAdmin?: boolean;
 }
 
-const { showAuthButtons = false, showLogout = false, user = null, isAdmin = false } = Astro.props;
+const { showAuthButtons = false, showLogout = false, isAdmin = false } = Astro.props;
 ---
 
 <nav class="bg-white dark:bg-gray-800 shadow-md transition-colors duration-200">
@@ -44,23 +43,6 @@ const { showAuthButtons = false, showLogout = false, user = null, isAdmin = fals
               class="bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 px-4 py-2 rounded-md text-sm font-medium transition-colors"
             >
               Sign Up
-            </a>
-          </>
-        )}
-
-        {user && (
-          <>
-            <a
-              href="/dashboard"
-              class="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              Dashboard
-            </a>
-            <a
-              href="/change-password"
-              class="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-            >
-              Change Password
             </a>
           </>
         )}

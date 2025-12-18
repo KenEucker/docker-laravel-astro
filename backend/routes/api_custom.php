@@ -34,7 +34,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
-  Route::put('/user/avatar', [UserAvatarController::class, 'store']);
+  Route::post('/user/avatar', [UserAvatarController::class, 'store']);
   Route::delete('/user/avatar', [UserAvatarController::class, 'destroy']);
 });
 

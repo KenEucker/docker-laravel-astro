@@ -32,7 +32,7 @@ const API = import.meta.env.PUBLIC_API_URL ?? "http://localhost:8000";
     await ensureCsrfCookie();
 
     const res = await fetch(`${API}/api/user/avatar`, {
-      method: "PUT",
+      method: "POST",
       body: fd,
       credentials: "include",
       headers: {

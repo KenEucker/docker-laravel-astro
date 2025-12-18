@@ -1,0 +1,127 @@
+---
+// src/pages/reset-password/[token].astro
+import Layout from '../../layouts/Layout.astro'
+import Navbar from '../../components/Navbar.astro'
+import { redirectIfAuthed } from '../../lib/auth'
+
+// Check if user is already authenticated
+const maybeRedirect = await redirectIfAuthed(Astro)
+if (maybeRedirect) return maybeRedirect
+
+const { token } = Astro.params
+
+// Get email from query params
+const email = Astro.url.searchParams.get('email') || ''
+---
+
+<Layout title="Reset Password">
+  <Navbar showAuthButtons={false} />
+
+  <div class="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+    <div class="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 mx-4">
+      <h2 class="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">Reset Password</h2>
+
+      <form id="resetPasswordForm" class="space-y-4">
+        <input type="hidden" id="token" value={token} />
+
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Email
+          </label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            required
+            value={email}
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+          />
+        </div>
+
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            New Password
+          </label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            required
+            minlength="8"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+          />
+        </div>
+
+        <div>
+          <label for="password_confirmation" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Confirm New Password
+          </label>
+          <input
+            type="password"
+            id="password_confirmation"
+            name="password_confirmation"
+            required
+            minlength="8"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+          />
+        </div>
+
+        <div id="error" class="hidden bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-200 px-4 py-3 rounded"></div>
+
+        <button
+          type="submit"
+          class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
+        >
+          Reset Password
+        </button>
+      </form>
+
+      <div class="mt-4 text-center">
+        <a href="/login" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+          Back to login
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    import { resetPassword } from '../../lib/api';
+
+    const form = document.getElementById('resetPasswordForm') as HTMLFormElement;
+    const errorDiv = document.getElementById('error') as HTMLDivElement;
+    const submitButton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorDiv.classList.add('hidden');
+
+      const formData = new FormData(form);
+      const email = formData.get('email') as string;
+      const password = formData.get('password') as string;
+      const password_confirmation = formData.get('password_confirmation') as string;
+      const token = (document.getElementById('token') as HTMLInputElement).value;
+
+      // Validate passwords match
+      if (password !== password_confirmation) {
+        errorDiv.textContent = 'Passwords do not match';
+        errorDiv.classList.remove('hidden');
+        return;
+      }
+
+      submitButton.disabled = true;
+      submitButton.textContent = 'Resetting...';
+
+      try {
+        await resetPassword(email, password, password_confirmation, token);
+        // Redirect to login with success message
+        window.location.href = '/login?reset=success';
+      } catch (error) {
+        errorDiv.textContent = error instanceof Error ? error.message : 'Failed to reset password';
+        errorDiv.classList.remove('hidden');
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Reset Password';
+      }
+    });
+  </script>
+</Layout>

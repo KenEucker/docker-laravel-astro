@@ -1,0 +1,199 @@
+---
+// src/pages/dashboard.astro
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+
+const API_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:8000';
+
+let user = null;
+let events = [];
+let error = null;
+
+try {
+  // Fetch user data
+  const userResponse = await fetch(`${API_URL}/api/user`, {
+    credentials: 'include',
+    headers: {
+      'Accept': 'application/json',
+    },
+  });
+
+  if (!userResponse.ok) {
+    return Astro.redirect('/login');
+  }
+
+  user = await userResponse.json();
+
+  // Fetch events
+  const eventsResponse = await fetch(`${API_URL}/api/events`, {
+    credentials: 'include',
+    headers: {
+      'Accept': 'application/json',
+    },
+  });
+
+  if (eventsResponse.ok) {
+    events = await eventsResponse.json();
+  }
+} catch (err) {
+  error = err instanceof Error ? err.message : 'Failed to load data';
+  return Astro.redirect('/login');
+}
+---
+
+<Layout title="Dashboard">
+  <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
+  <Navbar showAuthButtons={false} />
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {error ? (
+        <div class="bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-200 px-4 py-3 rounded mb-6">
+          {error}
+        </div>
+      ) : (
+        <>
+          <!-- Profile Section -->
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8 transition-colors">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Profile</h2>
+            {user && (
+              <div class="space-y-2">
+                <div class="flex items-center">
+                  <span class="text-gray-600 dark:text-gray-400 font-medium w-24">Name:</span>
+                  <span class="text-gray-900 dark:text-white">{user.name}</span>
+                </div>
+                <div class="flex items-center">
+                  <span class="text-gray-600 dark:text-gray-400 font-medium w-24">Email:</span>
+                  <span class="text-gray-900 dark:text-white">{user.email}</span>
+                </div>
+                <div class="flex items-center">
+                  <span class="text-gray-600 dark:text-gray-400 font-medium w-24">Member Since:</span>
+                  <span class="text-gray-900 dark:text-white">
+                    {new Date(user.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <!-- Events Section -->
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 transition-colors">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Events</h2>
+              <span class="text-sm text-gray-600 dark:text-gray-400">
+                {events.length} {events.length === 1 ? 'event' : 'events'}
+              </span>
+            </div>
+
+            {events.length === 0 ? (
+              <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                <p>No events found.</p>
+                <p class="text-sm mt-2">Check back later for upcoming events.</p>
+              </div>
+            ) : (
+              <div class="space-y-4">
+                {events.map((event: any) => (
+                  <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start">
+                      <div class="flex-1">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                          {event.title}
+                        </h3>
+                        {event.description && (
+                          <p class="text-gray-600 dark:text-gray-400 text-sm mb-2">
+                            {event.description}
+                          </p>
+                        )}
+                        <div class="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                          {event.date && (
+                            <span class="flex items-center gap-1">
+                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              {new Date(event.date).toLocaleDateString()}
+                            </span>
+                          )}
+                          {event.location && (
+                            <span class="flex items-center gap-1">
+                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                              {event.location}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {event.status && (
+                        <span class={`px-3 py-1 rounded-full text-xs font-medium ${
+                          event.status === 'upcoming' ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200' :
+                          event.status === 'ongoing' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
+                          'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                        }`}>
+                          {event.status}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </main>
+  </div>
+
+  <script>
+    import { logout } from '../lib/api';
+
+    // Theme toggle functionality
+    const themeToggle = document.getElementById('themeToggle');
+    const darkIcon = document.getElementById('theme-toggle-dark-icon');
+    const lightIcon = document.getElementById('theme-toggle-light-icon');
+
+    // Check for saved theme preference or default to system preference
+    const theme = (() => {
+      if (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) {
+        return localStorage.getItem('theme');
+      }
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'dark';
+      }
+      return 'light';
+    })();
+
+    // Set initial theme
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+      lightIcon?.classList.remove('hidden');
+    } else {
+      document.documentElement.classList.remove('dark');
+      darkIcon?.classList.remove('hidden');
+    }
+
+    // Toggle theme
+    themeToggle?.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.toggle('dark');
+      
+      // Toggle icons
+      darkIcon?.classList.toggle('hidden');
+      lightIcon?.classList.toggle('hidden');
+      
+      // Save preference
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    });
+
+    // Logout functionality
+    const logoutBtn = document.getElementById('logoutBtn');
+    
+    logoutBtn?.addEventListener('click', async () => {
+      try {
+        await logout();
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
+
+      window.location.href = '/login';
+    });
+  </script>
+</Layout>

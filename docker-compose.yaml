@@ -1,0 +1,69 @@
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-app}
+      MYSQL_USER: ${DB_USERNAME:-app}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootsecret}
+    volumes:
+      - dbdata:/var/lib/mysql
+    ports:
+      - "${DB_HOST_PORT:-3307}:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+
+  laravel:
+    build:
+      context: ./backend
+    working_dir: /var/www/html/app
+    env_file:
+      - ./.env
+    environment:
+      # Ensure Docker-network DB port (not host-mapped port)
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-3306}
+
+      # Make Sanctum happy for SPA auth
+      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost:3000,localhost}
+      SESSION_DOMAIN: ${SESSION_DOMAIN:-localhost}
+      SESSION_DRIVER: ${SESSION_DRIVER:-cookie}
+    volumes:
+      # Full Laravel app lives here (persistent)
+      - laravel_app:/var/www/html/app
+
+      # OPTIONAL: drop files you want to override into ./backend/overrides/*
+      # Your backend entrypoint can copy these into the app volume.
+      - ./backend/app:/overrides/app:ro
+      - ./backend/database:/overrides/database:ro
+      - ./backend/routes:/overrides/routes:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  astro:
+    build:
+      context: ./frontend
+    working_dir: /app
+    env_file:
+      - ./.env
+    volumes:
+      - ./frontend:/app
+      - astro_node_modules:/app/node_modules
+    environment:
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8000}
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "250"
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "3000:3000"
+
+volumes:
+  dbdata:
+  laravel_app:
+  astro_node_modules:

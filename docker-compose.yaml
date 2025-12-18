@@ -40,6 +40,7 @@ services:
       - ./backend/app:/overrides/app:ro
       - ./backend/database:/overrides/database:ro
       - ./backend/routes:/overrides/routes:ro
+      - ./backend/config:/overrides/config:ro
     depends_on:
       db:
         condition: service_healthy

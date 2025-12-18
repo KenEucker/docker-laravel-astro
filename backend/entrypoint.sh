@@ -43,8 +43,8 @@ fi
 cd "$APP_DIR"
 
 # --- apply overrides (safe if missing/empty) -------------------------------
-# Mount your override folders at /overrides/app, /overrides/database, /overrides/routes
-for d in app database routes; do
+# Mount your override folders at /overrides/app, /overrides/database, /overrides/routes, /overrides/config
+for d in app database routes config; do
   if [ -d "/overrides/$d" ]; then
     echo ">> Applying overrides: $d"
     mkdir -p "$APP_DIR/$d"

@@ -2,9 +2,10 @@
 // src/components/Navbar.astro
 interface Props {
   showAuthButtons?: boolean;
+  showLogout?: boolean;
 }
 
-const { showAuthButtons = false } = Astro.props;
+const { showAuthButtons = false, showLogout = false } = Astro.props;
 ---
 
 <nav class="bg-white dark:bg-gray-800 shadow-md transition-colors duration-200">
@@ -35,7 +36,17 @@ const { showAuthButtons = false } = Astro.props;
             </a>
           </>
         )}
-        
+
+        {showLogout && (
+          <button
+            id="logoutBtn"
+            type="button"
+            class="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
+          >
+            Logout
+          </button>
+        )}
+
         <!-- Dark Mode Toggle -->
         <button
           id="themeToggle"
@@ -72,40 +83,60 @@ const { showAuthButtons = false } = Astro.props;
 </nav>
 
 <script>
-  // Theme toggle functionality
-  const themeToggle = document.getElementById('themeToggle');
-  const darkIcon = document.getElementById('theme-toggle-dark-icon');
-  const lightIcon = document.getElementById('theme-toggle-light-icon');
+  function initThemeToggle() {
+    const themeToggle = document.getElementById('themeToggle');
+    const darkIcon = document.getElementById('theme-toggle-dark-icon');
+    const lightIcon = document.getElementById('theme-toggle-light-icon');
 
-  // Check for saved theme preference or default to system preference
-  const theme = (() => {
-    if (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) {
-      return localStorage.getItem('theme');
+    if (!themeToggle || !darkIcon || !lightIcon) {
+      console.warn('Theme toggle elements not found');
+      return;
     }
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
-    return 'light';
-  })();
 
-  // Set initial theme
-  if (theme === 'dark') {
-    document.documentElement.classList.add('dark');
-    lightIcon?.classList.remove('hidden');
-  } else {
-    document.documentElement.classList.remove('dark');
-    darkIcon?.classList.remove('hidden');
+    // Check for saved theme preference or default to system preference
+    const theme = (() => {
+      if (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) {
+        return localStorage.getItem('theme');
+      }
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'dark';
+      }
+      return 'light';
+    })();
+
+    // Set initial theme and icons
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+      darkIcon.classList.add('hidden');
+      lightIcon.classList.remove('hidden');
+    } else {
+      document.documentElement.classList.remove('dark');
+      darkIcon.classList.remove('hidden');
+      lightIcon.classList.add('hidden');
+    }
+
+    // Toggle theme on click
+    themeToggle.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.toggle('dark');
+
+      // Toggle icons
+      if (isDark) {
+        darkIcon.classList.add('hidden');
+        lightIcon.classList.remove('hidden');
+      } else {
+        darkIcon.classList.remove('hidden');
+        lightIcon.classList.add('hidden');
+      }
+
+      // Save preference
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    });
   }
 
-  // Toggle theme
-  themeToggle?.addEventListener('click', () => {
-    const isDark = document.documentElement.classList.toggle('dark');
-    
-    // Toggle icons
-    darkIcon?.classList.toggle('hidden');
-    lightIcon?.classList.toggle('hidden');
-    
-    // Save preference
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-  });
+  // Initialize on page load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initThemeToggle);
+  } else {
+    initThemeToggle();
+  }
 </script>

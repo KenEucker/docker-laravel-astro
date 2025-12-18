@@ -185,9 +185,12 @@ const avatarUrl =
         fd.append('avatar', file)
 
         const res = await fetch(`${API}/api/user/avatar`, {
-          method: 'PUT',
+          method: 'POST',
           body: fd,
           credentials: 'include',
+          headers: {
+            'X-XSRF-TOKEN': document.cookie.split('; ').find(row => row.startsWith('XSRF-TOKEN='))?.split('=')[1] || '',
+          },
         })
 
         if (!res.ok) {
@@ -216,6 +219,9 @@ const avatarUrl =
         const res = await fetch(`${API}/api/user/avatar`, {
           method: 'DELETE',
           credentials: 'include',
+          headers: {
+            'X-XSRF-TOKEN': document.cookie.split('; ').find(row => row.startsWith('XSRF-TOKEN='))?.split('=')[1] || '',
+          },
         })
 
         if (!res.ok) {

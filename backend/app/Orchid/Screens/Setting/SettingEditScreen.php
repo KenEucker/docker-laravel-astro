@@ -94,7 +94,7 @@ class SettingEditScreen extends Screen
                     ->placeholder('e.g., APP_NAME, MAX_UPLOAD_SIZE')
                     ->help('Unique identifier for this setting')
                     ->required()
-                    ->disabled($this->setting->exists),
+                    ->readonly($this->setting->exists),
 
                 Select::make('setting.type')
                     ->title('Type')
@@ -161,7 +161,7 @@ class SettingEditScreen extends Screen
                 Rule::in(['string', 'integer', 'float', 'boolean', 'json', 'array', 'object']),
             ],
             'setting.description' => 'nullable|string',
-            'setting.is_public' => 'boolean',
+            'setting.is_public' => 'nullable|boolean',
         ]);
 
         $data = $validated['setting'];

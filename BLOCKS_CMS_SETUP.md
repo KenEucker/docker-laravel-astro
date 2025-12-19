@@ -41,11 +41,7 @@ The Blocks CMS allows content to be stored as editable blocks keyed by unique st
 
 ### Frontend Setup
 
-1. **Install dependencies**:
-   ```bash
-   cd frontend
-   npm install marked isomorphic-dompurify @astrojs/vue vue
-   ```
+1. **Dependencies are auto-installed**: The frontend `entrypoint.sh` automatically installs the required Blocks CMS dependencies (`marked`, `isomorphic-dompurify`, `@astrojs/vue`, `vue`) when the container starts.
 
 2. **Add Vue integration to Astro config** (astro.config.mjs):
    ```javascript

@@ -75,7 +75,7 @@ class SettingEditScreen extends Screen
                 ->icon('bs.trash')
                 ->method('remove')
                 ->confirm(__('Are you sure you want to delete this setting?'))
-                ->canSee($this->setting->exists && auth()->user()->hasPermissionTo('platform.settings.delete')),
+                ->canSee($this->setting->exists && auth()->user()->hasAccess('platform.settings.delete')),
         ];
     }
 

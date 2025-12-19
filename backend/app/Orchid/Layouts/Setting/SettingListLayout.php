@@ -62,14 +62,14 @@ class SettingListLayout extends Table
                         Link::make(__('Edit'))
                             ->icon('bs.pencil')
                             ->route('platform.settings.edit', $setting)
-                            ->canSee(auth()->user()->hasPermissionTo('platform.settings.edit')),
+                            ->canSee(auth()->user()->hasAccess('platform.settings.edit')),
 
                         Button::make(__('Delete'))
                             ->icon('bs.trash')
                             ->method('remove')
                             ->confirm(__('Are you sure you want to delete this setting?'))
                             ->parameters(['id' => $setting->id])
-                            ->canSee(auth()->user()->hasPermissionTo('platform.settings.delete')),
+                            ->canSee(auth()->user()->hasAccess('platform.settings.delete')),
                     ])),
         ];
     }

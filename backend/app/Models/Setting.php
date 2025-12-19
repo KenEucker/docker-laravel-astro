@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
+use Orchid\Filters\Filterable;
 use Orchid\Screen\AsSource;
 
 class Setting extends Model
 {
-    use AsSource;
+    use AsSource, Filterable;
 
     protected $fillable = [
         'key',

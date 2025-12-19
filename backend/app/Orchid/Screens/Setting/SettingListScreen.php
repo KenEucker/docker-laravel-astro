@@ -58,7 +58,7 @@ class SettingListScreen extends Screen
             Link::make(__('Create Setting'))
                 ->icon('bs.plus-circle')
                 ->route('platform.settings.create')
-                ->canSee(auth()->user()->hasPermissionTo('platform.settings.edit')),
+                ->canSee(auth()->user()->hasAccess('platform.settings.edit')),
         ];
     }
 

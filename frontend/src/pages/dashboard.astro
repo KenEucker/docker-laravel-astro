@@ -11,9 +11,8 @@ if (user.redirected === false) {
 const error = null
 const API = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8000'
 
-// If your backend returns `avatar_url` (recommended), use it.
-// Otherwise, fall back to building a URL from `avatar_path`.
-const avatarUrl =user?.avatar_path ? `${API}/storage/${String(user.avatar_path).replace(/^\/?storage\/?/, '')}` : null
+// Use avatar_url from the API response (which includes proper URL formatting)
+const avatarUrl = user?.avatar_url ?? null
 ---
 
 <Layout title="Dashboard" isLoggedIn={true} isAdmin={user.is_admin}>

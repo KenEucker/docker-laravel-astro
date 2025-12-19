@@ -1,7 +1,7 @@
 FROM php:8.3-cli
 
 RUN apt-get update && apt-get install -y \
-  git unzip libzip-dev findutils \
+  git unzip libzip-dev findutils inotify-tools \
   && docker-php-ext-install pdo_mysql zip \
   && rm -rf /var/lib/apt/lists/*
 

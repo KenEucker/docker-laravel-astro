@@ -116,40 +116,75 @@ if [ ! -d "vendor/orchid/platform" ]; then
   composer install --no-interaction
 fi
 
-# --- wire up *_custom.php files (hot reload compatible) -------------------
-wire_custom_files () {
-  echo ">> Wiring *_custom.php files into base files..."
+# --- apply overrides (initial sync + wire custom files) -------------------
+apply_overrides () {
+  echo ">> Applying overrides from /overrides/*..."
 
-  for d in routes config; do
-    DIR="$APP_DIR/$d"
-    [ -d "$DIR" ] || continue
+  for d in app bootstrap database routes config; do
+    SRC="/overrides/$d"
+    [ -d "$SRC" ] || continue
 
-    # Find *_custom.php files and wire them into their base files
-    find "$DIR" -maxdepth 1 -type f -name "*_custom.php" | while read -r custom_file; do
-      rel="$(basename "$custom_file")"
+    # Special-case: seeders are additive (copy only if missing)
+    if [ "$d" = "database" ] && [ -d "$SRC/seeders" ]; then
+      echo ">> Additive: database/seeders"
+      mkdir -p "$APP_DIR/database/seeders"
+      find "$SRC/seeders" -type f | while read -r sf; do
+        rels="${sf#$SRC/seeders/}"
+        target_seeder="$APP_DIR/database/seeders/$rels"
+        if [ -f "$target_seeder" ]; then
+          echo ">> Skip seeder (exists): database/seeders/$rels"
+        else
+          echo ">> Copy seeder: database/seeders/$rels"
+          mkdir -p "$(dirname "$target_seeder")"
+          cp -f "$sf" "$target_seeder"
+        fi
+      done
+    fi
+
+    # Sync override files into the app (overwrite if exists, create if missing)
+    find "$SRC" -type f ! -name "*_custom.php" | while read -r f; do
+      rel="${f#$SRC/}"
+      target="$APP_DIR/$d/$rel"
+
+      # Don't double-handle seeders here (handled above)
+      if [ "$d" = "database" ] && printf "%s" "$rel" | grep -q "^seeders/"; then
+        continue
+      fi
+
+      echo ">> Sync: $d/$rel"
+      mkdir -p "$(dirname "$target")"
+      cp -f "$f" "$target"
+    done
+
+    # Wire up *_custom.php files (additive pattern)
+    find "$SRC" -type f -name "*_custom.php" | while read -r f; do
+      rel="${f#$SRC/}"
+      target="$APP_DIR/$d/$rel"
+
+      echo ">> Additive custom: $d/$rel"
+      mkdir -p "$(dirname "$target")"
+      cp -f "$f" "$target"
 
       # Determine base file (api_custom.php -> api.php)
-      base_name="$(printf "%s" "$rel" | sed 's/_custom\.php$/.php/')"
-      base="$APP_DIR/$d/$base_name"
+      base_rel="$(printf "%s" "$rel" | sed 's/_custom\.php$/.php/')"
+      base="$APP_DIR/$d/$base_rel"
 
       if [ -f "$base" ]; then
         # Valid PHP: require __DIR__.'/api_custom.php';
         require_line="require __DIR__.'/"$(basename "$rel")"';"
 
         if ! grep -Fq "$require_line" "$base"; then
-          echo ">> Wiring $(basename "$rel") into $d/$base_name"
-          printf "\n// auto-included from custom files\n%s\n" "$require_line" >> "$base"
-        else
-          echo ">> Already wired: $d/$base_name -> $(basename "$rel")"
+          echo ">> Wiring $(basename "$rel") into $d/$base_rel"
+          printf "\n// auto-included from overrides\n%s\n" "$require_line" >> "$base"
         fi
       else
-        echo ">> Skip wiring (base missing): $d/$base_name"
+        echo ">> Skip wiring (base missing): $d/$base_rel"
       fi
     done
   done
 }
 
-wire_custom_files
+apply_overrides
 
 # New classes added via overrides need autoload refreshed
 echo ">> composer dump-autoload"
@@ -182,6 +217,75 @@ if [ ! -f "$SEED_ONCE_FILE" ]; then
 else
   echo ">> Seeders already ran (marker exists): $SEED_ONCE_FILE"
 fi
+
+# --- hot reload file watcher (background) ------------------------------------
+start_file_watcher () {
+  echo ">> Starting hot reload file watcher..."
+
+  # Run in background, watch /overrides/* for changes
+  (
+    while true; do
+      inotifywait -r -e modify,create,delete,move \
+        /overrides/app \
+        /overrides/database \
+        /overrides/routes \
+        /overrides/config \
+        /overrides/bootstrap \
+        2>/dev/null | while read -r path action file; do
+
+        # Determine which override directory was modified
+        override_dir=$(echo "$path" | sed 's|^/overrides/\([^/]*\).*|\1|')
+
+        # Calculate relative path from override directory
+        rel_path="${path#/overrides/$override_dir/}$file"
+        target="$APP_DIR/$override_dir/$rel_path"
+        source_file="$path$file"
+
+        echo ">> [Hot reload] Change detected: $override_dir/$rel_path"
+
+        # Handle different actions
+        case "$action" in
+          CREATE|MODIFY|MOVED_TO)
+            if [ -f "$source_file" ]; then
+              mkdir -p "$(dirname "$target")"
+              cp -f "$source_file" "$target"
+              echo ">> [Hot reload] Synced: $override_dir/$rel_path"
+
+              # If it's a new PHP class, refresh autoloader
+              if echo "$file" | grep -q '\.php$' && [ "$override_dir" = "app" ]; then
+                (cd "$APP_DIR" && composer dump-autoload -o --no-interaction >/dev/null 2>&1) &
+                echo ">> [Hot reload] Refreshing autoloader..."
+              fi
+
+              # If it's a config file, clear config cache
+              if [ "$override_dir" = "config" ]; then
+                (cd "$APP_DIR" && php artisan config:clear >/dev/null 2>&1) &
+                echo ">> [Hot reload] Cleared config cache"
+              fi
+
+              # If it's a route file, clear route cache
+              if [ "$override_dir" = "routes" ]; then
+                (cd "$APP_DIR" && php artisan route:clear >/dev/null 2>&1) &
+                echo ">> [Hot reload] Cleared route cache"
+              fi
+            fi
+            ;;
+          DELETE|MOVED_FROM)
+            if [ -f "$target" ]; then
+              rm -f "$target"
+              echo ">> [Hot reload] Removed: $override_dir/$rel_path"
+            fi
+            ;;
+        esac
+      done
+    done
+  ) &
+
+  WATCHER_PID=$!
+  echo ">> Hot reload file watcher started (PID: $WATCHER_PID)"
+}
+
+start_file_watcher
 
 echo ">> Starting Laravel on 0.0.0.0:8000"
 exec php artisan serve --host=0.0.0.0 --port=8000

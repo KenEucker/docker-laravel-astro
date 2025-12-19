@@ -211,6 +211,7 @@ if [ ! -f "$SEED_ONCE_FILE" ]; then
   php artisan db:seed --class="Database\\Seeders\\OrchidPermissionsSeeder" --force
   php artisan db:seed --class="Database\\Seeders\\DefaultAdminUserSeeder" --force
   php artisan db:seed --class="Database\\Seeders\\SettingsSeeder" --force
+  php artisan db:seed --class="Database\\Seeders\\DefaultBlocksSeeder" --force
 
   touch "$SEED_ONCE_FILE"
   echo ">> Seeders complete. Marker created: $SEED_ONCE_FILE"

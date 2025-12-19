@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminSettingController;
 use App\Http\Controllers\User\UserAvatarController;
+use App\Http\Controllers\Api\BlockController;
+use App\Http\Controllers\Api\UserNoteController;
 use App\Models\Setting;
 use App\Http\Middleware\OrchidAdminAccess;
 
@@ -50,6 +52,18 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::middleware('auth:sanctum')->group(function () {
   Route::post('/user/avatar', [UserAvatarController::class, 'store']);
   Route::delete('/user/avatar', [UserAvatarController::class, 'destroy']);
+
+  // User Notes (personal notes for authenticated users)
+  Route::get('/me/notes', [UserNoteController::class, 'index']);
+  Route::post('/me/notes', [UserNoteController::class, 'store']);
+  Route::get('/me/notes/{note}', [UserNoteController::class, 'show']);
+  Route::put('/me/notes/{note}', [UserNoteController::class, 'update']);
+  Route::post('/me/notes/{note}/archive', [UserNoteController::class, 'archive']);
+  Route::post('/me/notes/{note}/unarchive', [UserNoteController::class, 'unarchive']);
+  Route::delete('/me/notes/{note}', [UserNoteController::class, 'destroy']);
+
+  // Block preview URLs (authenticated only)
+  Route::get('/content/blocks/{key}/preview', [BlockController::class, 'preview'])->name('api.blocks.preview');
 });
 
 /**
@@ -73,4 +87,15 @@ Route::middleware([
   Route::put('/settings/{setting}', [AdminSettingController::class, 'update']);
   Route::delete('/settings/{setting}', [AdminSettingController::class, 'destroy']);
   Route::get('/settings/{key}/value', [AdminSettingController::class, 'getValue']);
+});
+
+/**
+ * Public Content API (blocks)
+ *
+ * These endpoints are public and serve published content to the frontend.
+ * No authentication required for published blocks.
+ */
+Route::prefix('content')->group(function () {
+  Route::get('/blocks', [BlockController::class, 'index']);
+  Route::get('/blocks/{key}', [BlockController::class, 'show'])->name('api.blocks.show');
 });

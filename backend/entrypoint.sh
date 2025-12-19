@@ -116,10 +116,10 @@ if [ ! -d "vendor/orchid/platform" ]; then
   composer install --no-interaction
 fi
 
-# --- apply overrides (additive + *_custom append + seeders additive) ----
-apply_overrides_strict () {
-  echo ">> Applying overrides (additive + *_custom include + seeders additive)..."
-  
+# --- apply overrides (initial sync + wire custom files) -------------------
+apply_overrides () {
+  echo ">> Applying overrides from /overrides/*..."
+
   for d in app bootstrap database routes config; do
     SRC="/overrides/$d"
     [ -d "$SRC" ] || continue
@@ -141,15 +141,12 @@ apply_overrides_strict () {
       done
     fi
 
-    # 1) Sync overrides into the app:
-    #    - if target exists: overwrite
-    #    - if target missing: create (additive)
-    # This makes backend/app the source of truth.
+    # Sync override files into the app (overwrite if exists, create if missing)
     find "$SRC" -type f ! -name "*_custom.php" | while read -r f; do
       rel="${f#$SRC/}"
       target="$APP_DIR/$d/$rel"
 
-      # Don’t double-handle seeders here (handled above)
+      # Don't double-handle seeders here (handled above)
       if [ "$d" = "database" ] && printf "%s" "$rel" | grep -q "^seeders/"; then
         continue
       fi
@@ -159,9 +156,7 @@ apply_overrides_strict () {
       cp -f "$f" "$target"
     done
 
-    # 2) *_custom.php files are additive:
-    #    - always copy them into the app
-    #    - ensure the corresponding base file requires them
+    # Wire up *_custom.php files (additive pattern)
     find "$SRC" -type f -name "*_custom.php" | while read -r f; do
       rel="${f#$SRC/}"
       target="$APP_DIR/$d/$rel"
@@ -189,7 +184,7 @@ apply_overrides_strict () {
   done
 }
 
-apply_overrides_strict
+apply_overrides
 
 # New classes added via overrides need autoload refreshed
 echo ">> composer dump-autoload"
@@ -222,6 +217,75 @@ if [ ! -f "$SEED_ONCE_FILE" ]; then
 else
   echo ">> Seeders already ran (marker exists): $SEED_ONCE_FILE"
 fi
+
+# --- hot reload file watcher (background) ------------------------------------
+start_file_watcher () {
+  echo ">> Starting hot reload file watcher..."
+
+  # Run in background, watch /overrides/* for changes
+  (
+    while true; do
+      inotifywait -r -e modify,create,delete,move \
+        /overrides/app \
+        /overrides/database \
+        /overrides/routes \
+        /overrides/config \
+        /overrides/bootstrap \
+        2>/dev/null | while read -r path action file; do
+
+        # Determine which override directory was modified
+        override_dir=$(echo "$path" | sed 's|^/overrides/\([^/]*\).*|\1|')
+
+        # Calculate relative path from override directory
+        rel_path="${path#/overrides/$override_dir/}$file"
+        target="$APP_DIR/$override_dir/$rel_path"
+        source_file="$path$file"
+
+        echo ">> [Hot reload] Change detected: $override_dir/$rel_path"
+
+        # Handle different actions
+        case "$action" in
+          CREATE|MODIFY|MOVED_TO)
+            if [ -f "$source_file" ]; then
+              mkdir -p "$(dirname "$target")"
+              cp -f "$source_file" "$target"
+              echo ">> [Hot reload] Synced: $override_dir/$rel_path"
+
+              # If it's a new PHP class, refresh autoloader
+              if echo "$file" | grep -q '\.php$' && [ "$override_dir" = "app" ]; then
+                (cd "$APP_DIR" && composer dump-autoload -o --no-interaction >/dev/null 2>&1) &
+                echo ">> [Hot reload] Refreshing autoloader..."
+              fi
+
+              # If it's a config file, clear config cache
+              if [ "$override_dir" = "config" ]; then
+                (cd "$APP_DIR" && php artisan config:clear >/dev/null 2>&1) &
+                echo ">> [Hot reload] Cleared config cache"
+              fi
+
+              # If it's a route file, clear route cache
+              if [ "$override_dir" = "routes" ]; then
+                (cd "$APP_DIR" && php artisan route:clear >/dev/null 2>&1) &
+                echo ">> [Hot reload] Cleared route cache"
+              fi
+            fi
+            ;;
+          DELETE|MOVED_FROM)
+            if [ -f "$target" ]; then
+              rm -f "$target"
+              echo ">> [Hot reload] Removed: $override_dir/$rel_path"
+            fi
+            ;;
+        esac
+      done
+    done
+  ) &
+
+  WATCHER_PID=$!
+  echo ">> Hot reload file watcher started (PID: $WATCHER_PID)"
+}
+
+start_file_watcher
 
 echo ">> Starting Laravel on 0.0.0.0:8000"
 exec php artisan serve --host=0.0.0.0 --port=8000

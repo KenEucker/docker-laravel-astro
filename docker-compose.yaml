@@ -59,15 +59,20 @@ services:
     volumes:
       # Full Laravel app lives here (persistent)
       - laravel_app:/var/www/html/app
-      - laravel_uploads:/var/www/html/app/storage/app/public
 
-      # OPTIONAL: drop files you want to override into ./backend/overrides/*
-      # Your backend entrypoint can copy these into the app volume.
+      # Hot reload: Override files mounted read-only
+      # File watcher in container syncs changes automatically
       - ./backend/app:/overrides/app:ro
       - ./backend/database:/overrides/database:ro
       - ./backend/routes:/overrides/routes:ro
       - ./backend/config:/overrides/config:ro
       - ./backend/bootstrap:/overrides/bootstrap:ro
+
+      # Isolate vendor directory (like node_modules for Astro)
+      - laravel_vendor:/var/www/html/app/vendor
+
+      # User uploads stay persistent
+      - laravel_uploads:/var/www/html/app/storage/app/public
     depends_on:
       db:
         condition: service_healthy
@@ -124,6 +129,7 @@ services:
 volumes:
   dbdata:
   laravel_app:
+  laravel_vendor:
   laravel_uploads:
   astro_node_modules:
   caddy_data:

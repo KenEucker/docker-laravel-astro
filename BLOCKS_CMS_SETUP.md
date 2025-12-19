@@ -20,7 +20,7 @@ The Blocks CMS allows content to be stored as editable blocks keyed by unique st
 
 - **Components**: `Block.astro` (main component), individual block renderers
 - **Block Types**: Hero, RichText, Image, CTA, FeatureGrid, HTML
-- **User Notes**: React component for managing personal notes
+- **User Notes**: Vue component for managing personal notes
 
 ## Setup Instructions
 
@@ -44,17 +44,17 @@ The Blocks CMS allows content to be stored as editable blocks keyed by unique st
 1. **Install dependencies**:
    ```bash
    cd frontend
-   npm install marked isomorphic-dompurify @astrojs/react react react-dom
+   npm install marked isomorphic-dompurify @astrojs/vue vue
    ```
 
-2. **Add React integration to Astro config** (astro.config.mjs):
+2. **Add Vue integration to Astro config** (astro.config.mjs):
    ```javascript
    import { defineConfig } from 'astro/config';
    import tailwind from '@tailwindcss/vite';
-   import react from '@astrojs/react';
+   import vue from '@astrojs/vue';
 
    export default defineConfig({
-     integrations: [react()],
+     integrations: [vue()],
      vite: {
        plugins: [tailwind()],
      },
@@ -89,7 +89,7 @@ import Block from '../components/Block.astro';
 
 ```astro
 ---
-import UserNotes from '../components/UserNotes.tsx';
+import UserNotes from '../components/UserNotes.vue';
 ---
 
 <html>

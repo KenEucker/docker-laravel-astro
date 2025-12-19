@@ -116,80 +116,40 @@ if [ ! -d "vendor/orchid/platform" ]; then
   composer install --no-interaction
 fi
 
-# --- apply overrides (additive + *_custom append + seeders additive) ----
-apply_overrides_strict () {
-  echo ">> Applying overrides (additive + *_custom include + seeders additive)..."
-  
-  for d in app bootstrap database routes config; do
-    SRC="/overrides/$d"
-    [ -d "$SRC" ] || continue
+# --- wire up *_custom.php files (hot reload compatible) -------------------
+wire_custom_files () {
+  echo ">> Wiring *_custom.php files into base files..."
 
-    # Special-case: seeders are additive (copy only if missing)
-    if [ "$d" = "database" ] && [ -d "$SRC/seeders" ]; then
-      echo ">> Additive: database/seeders"
-      mkdir -p "$APP_DIR/database/seeders"
-      find "$SRC/seeders" -type f | while read -r sf; do
-        rels="${sf#$SRC/seeders/}"
-        target_seeder="$APP_DIR/database/seeders/$rels"
-        if [ -f "$target_seeder" ]; then
-          echo ">> Skip seeder (exists): database/seeders/$rels"
-        else
-          echo ">> Copy seeder: database/seeders/$rels"
-          mkdir -p "$(dirname "$target_seeder")"
-          cp -f "$sf" "$target_seeder"
-        fi
-      done
-    fi
+  for d in routes config; do
+    DIR="$APP_DIR/$d"
+    [ -d "$DIR" ] || continue
 
-    # 1) Sync overrides into the app:
-    #    - if target exists: overwrite
-    #    - if target missing: create (additive)
-    # This makes backend/app the source of truth.
-    find "$SRC" -type f ! -name "*_custom.php" | while read -r f; do
-      rel="${f#$SRC/}"
-      target="$APP_DIR/$d/$rel"
-
-      # Don’t double-handle seeders here (handled above)
-      if [ "$d" = "database" ] && printf "%s" "$rel" | grep -q "^seeders/"; then
-        continue
-      fi
-
-      echo ">> Sync: $d/$rel"
-      mkdir -p "$(dirname "$target")"
-      cp -f "$f" "$target"
-    done
-
-    # 2) *_custom.php files are additive:
-    #    - always copy them into the app
-    #    - ensure the corresponding base file requires them
-    find "$SRC" -type f -name "*_custom.php" | while read -r f; do
-      rel="${f#$SRC/}"
-      target="$APP_DIR/$d/$rel"
-
-      echo ">> Additive custom: $d/$rel"
-      mkdir -p "$(dirname "$target")"
-      cp -f "$f" "$target"
+    # Find *_custom.php files and wire them into their base files
+    find "$DIR" -maxdepth 1 -type f -name "*_custom.php" | while read -r custom_file; do
+      rel="$(basename "$custom_file")"
 
       # Determine base file (api_custom.php -> api.php)
-      base_rel="$(printf "%s" "$rel" | sed 's/_custom\.php$/.php/')"
-      base="$APP_DIR/$d/$base_rel"
+      base_name="$(printf "%s" "$rel" | sed 's/_custom\.php$/.php/')"
+      base="$APP_DIR/$d/$base_name"
 
       if [ -f "$base" ]; then
         # Valid PHP: require __DIR__.'/api_custom.php';
         require_line="require __DIR__.'/"$(basename "$rel")"';"
 
         if ! grep -Fq "$require_line" "$base"; then
-          echo ">> Wiring $(basename "$rel") into $d/$base_rel"
-          printf "\n// auto-included from overrides\n%s\n" "$require_line" >> "$base"
+          echo ">> Wiring $(basename "$rel") into $d/$base_name"
+          printf "\n// auto-included from custom files\n%s\n" "$require_line" >> "$base"
+        else
+          echo ">> Already wired: $d/$base_name -> $(basename "$rel")"
         fi
       else
-        echo ">> Skip wiring (base missing): $d/$base_rel"
+        echo ">> Skip wiring (base missing): $d/$base_name"
       fi
     done
   done
 }
 
-apply_overrides_strict
+wire_custom_files
 
 # New classes added via overrides need autoload refreshed
 echo ">> composer dump-autoload"

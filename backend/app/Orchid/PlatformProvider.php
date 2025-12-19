@@ -32,7 +32,7 @@ class PlatformProvider extends OrchidServiceProvider
      *
      * @return void
      */
-    protected function registerMenu(): void
+    public function registerMenu(): void
     {
         Menu::register([
             Menu::make(__('Dashboard'))

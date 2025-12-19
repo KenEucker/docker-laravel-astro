@@ -162,16 +162,36 @@ class UserEditScreen extends Screen
             $userData['password'] = Hash::make($userData['password']);
         }
 
-        // Handle avatar update (delete old avatar if changed)
-        if (!empty($userData['avatar_path'])) {
-            if ($user->exists && $user->avatar_path && $user->avatar_path !== $userData['avatar_path']) {
-                Storage::disk('public')->delete($user->avatar_path);
-            }
+        // Delete old avatar if changing to a new one
+        $newAvatarPath = $userData['avatar_path'] ?? null;
+        if ($user->exists && $user->avatar_path && $newAvatarPath && $user->avatar_path !== $newAvatarPath) {
+            Storage::disk('public')->delete($user->avatar_path);
         }
 
-        // Save user
+        // Temporarily remove avatar_path for initial save if it's in temp folder
+        $tempAvatarPath = null;
+        if (!empty($userData['avatar_path']) && str_starts_with($userData['avatar_path'], 'avatars/temp/')) {
+            $tempAvatarPath = $userData['avatar_path'];
+            unset($userData['avatar_path']);
+        }
+
+        // Save user first to ensure we have an ID
         $user->fill($userData);
         $user->save();
+
+        // Now move avatar from temp to user-specific folder if needed
+        if ($tempAvatarPath) {
+            $filename = basename($tempAvatarPath);
+            $userDir = 'avatars/' . $user->id;
+            $finalPath = $userDir . '/' . $filename;
+
+            // Move the file from temp to user folder
+            if (Storage::disk('public')->exists($tempAvatarPath)) {
+                Storage::disk('public')->move($tempAvatarPath, $finalPath);
+                $user->avatar_path = $finalPath;
+                $user->save();
+            }
+        }
 
         // Sync roles (Orchid native)
         if (array_key_exists('roles', $validated['user'] ?? [])) {

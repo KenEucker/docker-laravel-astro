@@ -9,6 +9,8 @@ use App\Orchid\Screens\Setting\SettingEditScreen;
 use App\Orchid\Screens\Setting\SettingListScreen;
 use App\Orchid\Screens\Block\BlockEditScreen;
 use App\Orchid\Screens\Block\BlockListScreen;
+use App\Http\Controllers\Admin\AdminAvatarController;
+use App\Http\Controllers\Admin\AdminFileUploadController;
 use Illuminate\Support\Facades\Route;
 use Tabuna\Breadcrumbs\Trail;
 
@@ -85,3 +87,13 @@ Route::screen('settings/{setting}/edit', SettingEditScreen::class)
     ->breadcrumbs(fn (Trail $trail) => $trail
         ->parent('platform.settings.list')
         ->push(__('Edit Setting')));
+
+// Override Orchid's file upload endpoint with custom authorization
+Route::post('systems/files', [AdminFileUploadController::class, 'upload'])
+    ->name('platform.systems.files.upload');
+
+// Admin Avatar Upload Routes (requires platform.users.edit permission)
+Route::post('users/{user}/avatar', [AdminAvatarController::class, 'store'])
+    ->name('platform.users.avatar.upload');
+Route::delete('users/{user}/avatar', [AdminAvatarController::class, 'destroy'])
+    ->name('platform.users.avatar.delete');

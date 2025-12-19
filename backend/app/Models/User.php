@@ -2,74 +2,55 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Notifications\ResetPasswordNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\HasApiTokens;
+use Orchid\Platform\Models\User as OrchidUser;
 use Orchid\Screen\AsSource;
-use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends OrchidUser
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles, AsSource;
+    use HasApiTokens, HasFactory, Notifiable, AsSource;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
         'avatar_path',
+        'permissions',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
-    ];
-    
-    /**
-     * The attributes that should be appended.
-     *
-     * @var array<string, string>
-     */
-    protected $appends = [
-      'avatar_url',
+        'permissions' => 'array',
     ];
 
-    /**
-     * Send the password reset notification.
-     *
-     * @param  string  $token
-     * @return void
-     */
-    public function sendPasswordResetNotification($token)
+    protected $appends = [
+        'avatar_url',
+    ];
+
+    public function sendPasswordResetNotification($token): void
     {
         $this->notify(new ResetPasswordNotification($token));
     }
 
     public function getAvatarUrlAttribute(): ?string
     {
-      return $this->avatar_path ? Storage::url($this->avatar_path) : null;
+        return $this->avatar_path ? Storage::url($this->avatar_path) : null;
+    }
+
+    // Optional convenience helper (keep or delete—your call)
+    public function grantAllAccess(): void
+    {
+        $this->permissions = ['*' => true];
+        $this->save();
     }
 }

@@ -106,18 +106,6 @@ if [ ! -d "vendor/laravel/breeze" ]; then
   composer install --no-interaction
 fi
 
-# --- spatie roles/permissions install (only once) --------------------------
-if [ ! -d "vendor/spatie/laravel-permission" ]; then
-  echo ">> Installing Spatie laravel-permission..."
-  composer require spatie/laravel-permission --no-interaction
-
-  php artisan vendor:publish \
-    --provider="Spatie\Permission\PermissionServiceProvider" \
-    --no-interaction || true
-
-  composer install --no-interaction
-fi
-
 # --- orchid platform install (only once) -----------------------------------
 if [ ! -d "vendor/orchid/platform" ]; then
   echo ">> Installing Orchid Platform..."
@@ -131,8 +119,8 @@ fi
 # --- apply overrides (additive + *_custom append + seeders additive) ----
 apply_overrides_strict () {
   echo ">> Applying overrides (additive + *_custom include + seeders additive)..."
-
-  for d in app database routes config; do
+  
+  for d in app bootstrap database routes config; do
     SRC="/overrides/$d"
     [ -d "$SRC" ] || continue
 
@@ -225,9 +213,9 @@ if [ ! -f "$SEED_ONCE_FILE" ]; then
   echo ">> Running seeders (first boot only)..."
 
   # IMPORTANT: remove the `|| true` while debugging so you can see real failures.
-  php artisan db:seed --class="Database\\Seeders\\RolesAndPermissionsSeeder" --force
-  php artisan db:seed --class="Database\\Seeders\\DefaultAdminUserSeeder" --force
   php artisan db:seed --class="Database\\Seeders\\OrchidPermissionsSeeder" --force
+  php artisan db:seed --class="Database\\Seeders\\DefaultAdminUserSeeder" --force
+  php artisan db:seed --class="Database\\Seeders\\SettingsSeeder" --force
 
   touch "$SEED_ONCE_FILE"
   echo ">> Seeders complete. Marker created: $SEED_ONCE_FILE"

@@ -12,7 +12,7 @@ This document describes the Orchid admin panel integration for your Laravel + As
    - No conflicts with existing Sanctum cookie authentication
 
 ### 2. **Authorization & Security**
-   - **Admin-only access**: Only users with the `admin` role (via Spatie) can access Orchid
+   - **Admin-only access**: Only users with the `admin` role
    - Custom middleware: `OrchidAdminAccess` checks for admin role
    - Route prefix: `/admin` (configurable via `ORCHID_PREFIX` env variable)
    - Fully isolated from your public API routes
@@ -39,7 +39,7 @@ This document describes the Orchid admin panel integration for your Laravel + As
    - **Create/Edit View**:
      - Name, email, password fields
      - Avatar upload (max 5MB, stored in `storage/app/public`)
-     - Role assignment (multiple roles via Spatie)
+     - Role assignment
      - Password field:
        - Required for new users
        - Optional for existing users (leave blank to keep current)
@@ -85,7 +85,6 @@ This document describes the Orchid admin panel integration for your Laravel + As
 
 ### 6. **Roles & Permissions**
    - Built-in Orchid roles/permissions screen
-   - Integrated with existing Spatie roles (`admin`, `user`)
    - Admin role automatically gets all Orchid permissions
 
 ---
@@ -203,7 +202,6 @@ Then access at: `http://admin.local.test/dashboard`
 1. **Orchid Routes**: All Orchid routes are protected by the `OrchidAdminAccess` middleware
 2. **Middleware Check**: Verifies user is authenticated AND has the `admin` role
 3. **Permission-Based**: Individual screens check for specific permissions
-4. **Spatie Integration**: Uses your existing Spatie roles/permissions
 
 ### Permission Structure
 
@@ -369,7 +367,7 @@ public function query(): iterable
 Edit `backend/app/Orchid/PlatformProvider.php`:
 
 ```php
-protected function registerMenu(): void
+public function registerMenu(): void
 {
     Menu::register([
         // Existing menus...
@@ -399,7 +397,6 @@ Edit `backend/config/platform.php`:
 
 - [Orchid Official Docs](https://orchid.software/en/docs)
 - [Orchid GitHub](https://github.com/orchidsoftware/platform)
-- [Spatie Permissions Docs](https://spatie.be/docs/laravel-permission)
 - [Laravel Sanctum Docs](https://laravel.com/docs/sanctum)
 
 ---
@@ -424,7 +421,6 @@ Once you've confirmed Orchid works and you're ready to remove the Astro admin pa
 - ✅ Full admin panel at `/admin` route
 - ✅ User management (CRUD + roles + avatar)
 - ✅ Settings management (CRUD + types + caching)
-- ✅ Role/permission management (Spatie integration)
 - ✅ Admin-only access control
 - ✅ Existing API routes preserved
 - ✅ No breaking changes to Astro app

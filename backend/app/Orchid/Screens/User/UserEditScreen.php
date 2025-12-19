@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Orchid\Platform\Models\Role;
 use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Fields\Password;
@@ -17,7 +18,6 @@ use Orchid\Screen\Fields\Relation;
 use Orchid\Screen\Screen;
 use Orchid\Support\Facades\Layout;
 use Orchid\Support\Facades\Toast;
-use Spatie\Permission\Models\Role;
 
 class UserEditScreen extends Screen
 {
@@ -31,6 +31,9 @@ class UserEditScreen extends Screen
      */
     public function query(User $user): iterable
     {
+        // Ensure $this->user is populated for name/description/commandBar conditions
+        $this->user = $user;
+
         return [
             'user' => $user,
         ];
@@ -78,7 +81,10 @@ class UserEditScreen extends Screen
                 ->icon('bs.trash')
                 ->method('remove')
                 ->confirm(__('Are you sure you want to delete this user?'))
-                ->canSee($this->user->exists && auth()->user()->hasPermissionTo('platform.users.delete')),
+                ->canSee(
+                    $this->user->exists &&
+                    auth()->user()?->hasAccess('platform.users.delete')
+                ),
         ];
     }
 
@@ -114,6 +120,8 @@ class UserEditScreen extends Screen
                     ->maxFileSize(5)
                     ->help('Maximum file size: 5MB'),
 
+                // IMPORTANT:
+                // Relation field submits Role IDs, not names.
                 Relation::make('user.roles')
                     ->title('Roles')
                     ->fromModel(Role::class, 'name')
@@ -139,7 +147,10 @@ class UserEditScreen extends Screen
                 ? 'nullable|string|min:8'
                 : 'required|string|min:8',
             'user.avatar_path' => 'nullable|string',
+
+            // Relation::make('user.roles') submits an array of role IDs
             'user.roles' => 'nullable|array',
+            'user.roles.*' => 'integer|exists:roles,id',
         ]);
 
         $userData = $validated['user'];
@@ -151,9 +162,8 @@ class UserEditScreen extends Screen
             $userData['password'] = Hash::make($userData['password']);
         }
 
-        // Handle avatar upload
-        if (isset($userData['avatar_path']) && $userData['avatar_path']) {
-            // If updating and old avatar exists, delete it
+        // Handle avatar update (delete old avatar if changed)
+        if (!empty($userData['avatar_path'])) {
             if ($user->exists && $user->avatar_path && $user->avatar_path !== $userData['avatar_path']) {
                 Storage::disk('public')->delete($user->avatar_path);
             }
@@ -163,9 +173,11 @@ class UserEditScreen extends Screen
         $user->fill($userData);
         $user->save();
 
-        // Sync roles
-        if (isset($validated['user']['roles'])) {
-            $user->syncRoles($validated['user']['roles']);
+        // Sync roles (Orchid native)
+        if (array_key_exists('roles', $validated['user'] ?? [])) {
+            // If roles is null, sync to empty array to clear roles
+            $roleIds = $validated['user']['roles'] ?? [];
+            $user->roles()->sync($roleIds);
         }
 
         Toast::success(__('User saved successfully'));

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Orchid\Screens;
 
-use App\Models\User;
 use App\Models\Setting;
+use App\Models\User;
 use Orchid\Screen\Actions\Link;
 use Orchid\Screen\Screen;
 use Orchid\Screen\Sight;
@@ -13,63 +13,60 @@ use Orchid\Support\Facades\Layout;
 
 class DashboardScreen extends Screen
 {
-    /**
-     * Display header name.
-     */
     public function name(): ?string
     {
         return 'Dashboard';
     }
 
-    /**
-     * Display header description.
-     */
     public function description(): ?string
     {
-        return 'Welcome to the admin panel, ' . auth()->user()->name;
+        $name = auth()->user()?->name ?? 'User';
+        return 'Welcome to the admin panel, ' . $name;
     }
 
-    /**
-     * Query data.
-     */
     public function query(): iterable
     {
-        $recentUser = User::latest()->first();
+        $recentUser = User::query()->latest()->first();
+
+        // Count “admins” as users with global wildcard permission.
+        // This matches your DefaultAdminUserSeeder which sets ['*' => true].
+        $adminCount = User::query()
+            ->whereJsonContains('permissions->*', true)
+            ->count();
 
         return [
             'metrics' => [
-                'users' => number_format(User::count()),
-                'admins' => number_format(User::role('admin')->count()),
-                'settings' => number_format(Setting::count()),
+                'users' => number_format(User::query()->count()),
+                'admins' => number_format($adminCount),
+                'settings' => number_format(Setting::query()->count()),
             ],
             'recent_user' => $recentUser ? [
                 'name' => $recentUser->name,
                 'email' => $recentUser->email,
-                'registered' => $recentUser->created_at->diffForHumans(),
+                'registered' => optional($recentUser->created_at)->diffForHumans(),
             ] : null,
         ];
     }
 
-    /**
-     * Button commands (Quick Links).
-     */
     public function commandBar(): iterable
     {
+        $u = auth()->user();
+
         return [
             Link::make(__('Manage Users'))
                 ->icon('bs.people')
                 ->route('platform.users.list')
-                ->canSee(auth()->user()->hasPermissionTo('platform.users.list')),
+                ->canSee($u?->hasAccess('platform.users.list') ?? false),
 
             Link::make(__('Manage Settings'))
                 ->icon('bs.gear')
                 ->route('platform.settings.list')
-                ->canSee(auth()->user()->hasPermissionTo('platform.settings.list')),
+                ->canSee($u?->hasAccess('platform.settings.list') ?? false),
 
             Link::make(__('Roles & Permissions'))
                 ->icon('bs.shield-lock')
                 ->route('platform.systems.roles')
-                ->canSee(auth()->user()->hasPermissionTo('platform.systems.roles')),
+                ->canSee($u?->hasAccess('platform.systems.roles') ?? false),
 
             Link::make(__('View Frontend'))
                 ->icon('bs.box-arrow-up-right')
@@ -78,21 +75,18 @@ class DashboardScreen extends Screen
         ];
     }
 
-    /**
-     * Views.
-     */
     public function layout(): iterable
     {
         $layouts = [
             Layout::metrics([
-                'Total Users'    => 'metrics.users',
-                'Admin Users'    => 'metrics.admins',
-                'Settings'       => 'metrics.settings',
+                'Total Users' => 'metrics.users',
+                'Admin Users' => 'metrics.admins',
+                'Settings'    => 'metrics.settings',
             ]),
         ];
 
-        // Add recent user info if exists
-        if (request()->input('recent_user')) {
+        // Show recent user legend if the query provided data
+        if (!empty($this->query['recent_user'] ?? null)) {
             $layouts[] = Layout::legend('recent_user', [
                 Sight::make('name', __('Latest Registered User')),
                 Sight::make('email', __('Email')),

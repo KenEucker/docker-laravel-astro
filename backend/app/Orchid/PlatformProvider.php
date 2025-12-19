@@ -22,19 +22,16 @@ class PlatformProvider extends OrchidServiceProvider
     public function boot(Dashboard $dashboard): void
     {
         parent::boot($dashboard);
-
-        // Register the menu
-        $this->registerMenu();
     }
 
     /**
      * Register the application menu.
      *
-     * @return void
+     * @return array
      */
-    protected function registerMenu(): void
+    public function registerMenu(): array
     {
-        Menu::register([
+        return [
             Menu::make(__('Dashboard'))
                 ->icon('bs.speedometer2')
                 ->route('platform.dashboard')
@@ -54,7 +51,7 @@ class PlatformProvider extends OrchidServiceProvider
                 ->icon('bs.shield-lock')
                 ->route('platform.systems.roles')
                 ->permission('platform.systems.roles'),
-        ]);
+        ];
     }
 
     /**

@@ -9,22 +9,48 @@ use Symfony\Component\HttpFoundation\Response;
 class OrchidAdminAccess
 {
     /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * Usage examples:
+     *  \App\Http\Middleware\OrchidAdminAccess::class . ':app.admin'
+     *  \App\Http\Middleware\OrchidAdminAccess::class . ':app.admin,app.settings'
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next, string ...$permissions): Response
     {
-        // Check if user is authenticated
-        if (!auth()->check()) {
+        $user = $request->user();
+
+        // Treat API routes as JSON even if Accept header is missing
+        $wantsJson = $request->expectsJson() || $request->is('api/*');
+
+        if (!$user) {
+            if ($wantsJson) {
+                return response()->json(['message' => 'Unauthenticated'], 401);
+            }
+
             return redirect()->route('login');
         }
 
-        // Check if user has the 'admin' role using Spatie
-        if (!auth()->user()->hasRole('admin')) {
-            abort(403, 'Access denied. Admin role required.');
+        // Default permission if none passed
+        if (empty($permissions)) {
+            $permissions = ['app.admin'];
         }
 
-        return $next($request);
+        if (!method_exists($user, 'hasAccess')) {
+            if ($wantsJson) {
+                return response()->json(['message' => 'Forbidden'], 403);
+            }
+
+            abort(403, 'Access denied.');
+        }
+
+        foreach ($permissions as $permission) {
+            if ($user->hasAccess($permission)) {
+                return $next($request);
+            }
+        }
+
+        if ($wantsJson) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        abort(403, 'Access denied.');
     }
 }

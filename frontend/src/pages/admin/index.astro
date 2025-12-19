@@ -1,21 +1,11 @@
 ---
 import Layout from '../../layouts/Layout.astro'
-import { requireAuth } from '../../lib/auth'
+import { requireAdmin } from '../../lib/auth'
 
 // Protect this route (server-side)
-const user = await requireAuth(Astro)
-if (user.redirected === false) {
-  return user
-}
-
-// Adjust this check to match your user shape
-const isAdmin =
-  user?.role === 'admin' ||
-  user?.roles?.includes?.('admin') ||
-  user?.permissions?.includes?.('admin')
-
-if (!isAdmin) {
-  return Astro.redirect('/dashboard')
+const admin = await requireAdmin(Astro)
+if (admin.redirected === false) {
+  return admin
 }
 
 // Define your admin pages here (add/remove as you build features)

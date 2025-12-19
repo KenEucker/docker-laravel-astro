@@ -2,12 +2,10 @@
 
 ## Overview
 
-This application uses **Spatie Laravel Permission** package for all authorization. There is **one permission system** with **two permission namespaces**:
+This application uses **Orchid Permissions** package for all authorization. 
 
 1. **API Permissions** (`admin.*`) - Control access to API endpoints
 2. **Orchid UI Permissions** (`platform.*`) - Control access to Orchid admin panel screens
-
-Both permission sets are stored in the same Spatie database tables and managed through the same roles system.
 
 ---
 
@@ -79,7 +77,7 @@ This table shows the **conceptual mapping** between API and Orchid permissions:
 - **Name:** `admin`
 - **Permissions:** ALL (both `admin.*` and `platform.*`)
 - **Access:** Full API access + Full Orchid UI access
-- **Created by:** `RolesAndPermissionsSeeder` + `OrchidPermissionsSeeder`
+- **Created by:** `OrchidPermissionsSeeder`
 
 ```php
 $adminRole = Role::where('name', 'admin')->first();
@@ -101,7 +99,7 @@ $adminRole->permissions->pluck('name');
 - **Name:** `user`
 - **Permissions:** NONE by default
 - **Access:** No admin API access, No Orchid UI access
-- **Created by:** `RolesAndPermissionsSeeder`
+- **Created by:** `OrchidPermissionsSeeder`
 
 ---
 
@@ -112,16 +110,28 @@ $adminRole->permissions->pluck('name');
 User who can manage users via API but cannot access Orchid UI:
 
 ```php
-use Spatie\Permission\Models\Role;
+use Orchid\Platform\Models\Role;
 
-$apiManager = Role::create(['name' => 'api-manager']);
-$apiManager->givePermissionTo([
-    'admin.view',
-    'admin.manage-users',
-]);
+$apiManager = Role::updateOrCreate(
+    ['slug' => 'api-manager'],
+    [
+        'name' => 'API Manager',
+        'permissions' => [
+            // API / backend permissions
+            'app.admin'        => true,
+            'app.users.view'   => true,
+            'app.users.create' => true,
+            'app.users.edit'   => true,
+            'app.users.delete' => true,
+
+            // Explicitly exclude Orchid UI permissions
+            // (no platform.* keys)
+        ],
+    ]
+);
 
 // Assign to user
-$user->assignRole('api-manager');
+$user->roles()->syncWithoutDetaching([$apiManager->id]);
 ```
 
 **Result:**
@@ -314,7 +324,7 @@ $user->givePermissionTo('platform.users.list');
 
 **For API permissions:**
 
-Edit `database/seeders/RolesAndPermissionsSeeder.php`:
+Edit `database/seeders/OrchidPermissionsSeeder.php`:
 
 ```php
 $permissions = [
@@ -342,7 +352,6 @@ $permissions = [
 #### 2. Run Seeders
 
 ```bash
-docker-compose exec laravel php artisan db:seed --class=RolesAndPermissionsSeeder
 docker-compose exec laravel php artisan db:seed --class=OrchidPermissionsSeeder
 ```
 
@@ -406,18 +415,6 @@ if (auth()->user()->hasRole('admin')) {
 }
 ```
 
-### In Blade Views
-
-```blade
-@can('admin.manage-users')
-    <button>Edit User</button>
-@endcan
-
-@role('admin')
-    <a href="/admin">Admin Panel</a>
-@endrole
-```
-
 ### In Orchid Screens
 
 ```php
@@ -451,7 +448,7 @@ Route::middleware(['auth:sanctum', 'permission:admin.manage-users'])->group(func
 
 ## Database Structure
 
-All permissions are stored in Spatie's tables:
+All permissions are stored in Orchid's tables:
 
 ```sql
 -- Permissions table
@@ -536,18 +533,6 @@ SELECT * FROM role_has_permissions;
    ```bash
    >>> $user->givePermissionTo('platform.users.list');
    ```
-
-### Permission Doesn't Exist
-
-**Create it:**
-```bash
-docker-compose exec laravel php artisan tinker
->>> \Spatie\Permission\Models\Permission::create(['name' => 'platform.new.permission']);
-```
-
-Or run the appropriate seeder.
-
----
 
 ## Best Practices
 
@@ -644,7 +629,7 @@ If you decide to consolidate to a single namespace in the future, here's how:
 
 4. Run migration:
    ```bash
-   docker-compose exec laravel php artisan db:seed --class=RolesAndPermissionsSeeder
+   docker-compose exec laravel php artisan db:seed --class=OrchidPermissionsSeeder
    ```
 
 ---
@@ -652,7 +637,7 @@ If you decide to consolidate to a single namespace in the future, here's how:
 ## Summary
 
 **Current Architecture:**
-- ✅ One permission system (Spatie)
+- ✅ One permission system (Orchid)
 - ✅ Two namespaces (`admin.*` for API, `platform.*` for Orchid UI)
 - ✅ Admin role gets all permissions automatically
 - ✅ Granular control available for custom roles

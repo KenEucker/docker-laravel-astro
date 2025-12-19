@@ -201,15 +201,6 @@ Setting::forget('APP_NAME');
 
 ## Example Use Cases
 
-### Feature Flags
-
-```php
-$features = setting('FEATURE_FLAGS', []);
-if ($features['new_dashboard'] ?? false) {
-    // Show new dashboard
-}
-```
-
 ### Maintenance Mode
 
 ```php

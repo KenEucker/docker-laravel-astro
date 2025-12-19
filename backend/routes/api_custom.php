@@ -2,12 +2,11 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Spatie\Permission\Middleware\RoleMiddleware;
 use App\Http\Controllers\Admin\AdminUserController;
-use App\Http\Controllers\Admin\AdminAclController;
 use App\Http\Controllers\Admin\AdminSettingController;
 use App\Http\Controllers\User\UserAvatarController;
 use App\Models\Setting;
+use App\Http\Middleware\OrchidAdminAccess;
 
 // Public settings endpoint (no auth required)
 Route::get('/settings/public', function () {
@@ -23,8 +22,16 @@ Route::middleware('auth:sanctum')->get('/me', function (Request $request) {
     'email' => $u->email,
     'avatar_path' => $u->avatar_path,
     'avatar_url' => $u->avatar_url,
-    'roles' => $u->roles->pluck('name')->values(),
-    'permissions' => $u->permissions->pluck('name')->values(),
+    'is_admin' => $u->hasAccess('app.admin') || $u->hasAccess('*'),
+
+    // Orchid: permissions are generally stored as keys (often in users.permissions JSON)
+    // and inherited via roles.
+    'permissions' => $u->permissions ?? [],
+
+    // If your frontend expects `roles`, you can later populate this once your User model
+    // exposes Orchid roles reliably in your overlay setup.
+    'roles' => [],
+
     'created_at' => $u->created_at,
   ];
 });
@@ -45,13 +52,20 @@ Route::middleware('auth:sanctum')->group(function () {
   Route::delete('/user/avatar', [UserAvatarController::class, 'destroy']);
 });
 
-Route::middleware(['auth:sanctum', RoleMiddleware::class . ':admin'])->prefix('admin')->group(function () {
+/**
+ * Admin API routes
+ *
+ * No Kernel.php alias: use middleware class name directly (Option B).
+ * Gate everything behind an Orchid permission key, e.g. 'app.admin'.
+ */
+Route::middleware([
+  'auth:sanctum',
+  OrchidAdminAccess::class . ':app.admin',
+])->prefix('admin')->group(function () {
+
   Route::get('/users', [AdminUserController::class, 'index']);
   Route::get('/users/{user}', [AdminUserController::class, 'show']);
   Route::put('/users/{user}', [AdminUserController::class, 'update']);
-
-  Route::get('/roles', [AdminAclController::class, 'roles']);
-  Route::get('/permissions', [AdminAclController::class, 'permissions']);
 
   Route::get('/settings', [AdminSettingController::class, 'index']);
   Route::get('/settings/{setting}', [AdminSettingController::class, 'show']);

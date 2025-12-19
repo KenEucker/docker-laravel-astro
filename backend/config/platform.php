@@ -42,7 +42,8 @@ return [
 
     'middleware' => [
         'web',
-        OrchidAdminAccess::class,
+        'platform',
+        // OrchidAdminAccess::class,
     ],
 
     /*

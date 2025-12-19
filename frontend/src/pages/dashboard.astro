@@ -16,7 +16,7 @@ const API = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8000'
 const avatarUrl =user?.avatar_path ? `${API}/storage/${String(user.avatar_path).replace(/^\/?storage\/?/, '')}` : null
 ---
 
-<Layout title="Dashboard" isLoggedIn={true} isAdmin={user.roles.includes('admin')}>
+<Layout title="Dashboard" isLoggedIn={true} isAdmin={user.is_admin}>
   <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {error ? (

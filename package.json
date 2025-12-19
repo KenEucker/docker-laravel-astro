@@ -9,12 +9,17 @@
     "url": "https://github.com/keneucker/docker-laravel-astro/issues"
   },
   "scripts": {
+    "dc:down-v": "docker compose down -v",
+    "dc:down-n-out": "docker compose down -v --rmi all --remove-orphans",
     "dc:up": "docker compose up -d --build",
     "dc:down": "docker compose down",
     "dc:logs": "docker compose logs -f --tail=200",
     "dc:ps": "docker compose ps",
+    "logs:laravel": "docker compose logs -f --tail=200 laravel",
+    "logs:astro": "docker compose logs -f --tail=200 astro",
+    "logs:caddy": "docker compose logs -f --tail=200 caddy",
     "dev:localhost": "npm run env:localhost && npm run dc:down && npm run dc:up",
-    "dev:proxy": "npm run env:proxy && npm run dc:down && docker compose --profile proxy up -d --build",
+    "dev:proxy": "npm run env:proxy && npm run dc:down && docker compose --profile proxy up --build",
     "env:localhost": "node -e \"const fs=require('fs');const path='.env';if(!fs.existsSync(path))throw new Error('No .env file found');const keys=['APP_URL','PUBLIC_API_URL','FRONTEND_URL','PUBLIC_SITE_URL','ADMIN_HOSTNAME','INTRANET_HOSTNAME','SANCTUM_STATEFUL_DOMAINS','SESSION_DOMAIN','SESSION_DRIVER'];const lines=fs.readFileSync(path,'utf8').split(/\\r?\\n/);const out=lines.map(l=>{const m=l.match(/^([^#=]+)=/);if(!m)return l;const k=m[1];if(keys.includes(k))return '# '+l.replace(/^#+\\s*/,'');return l;});fs.writeFileSync(path,out.join('\\n'));console.log('✔ env:localhost → commented proxy/domain-related keys');\"",
     "env:proxy": "node -e \"const fs=require('fs');const path='.env';if(!fs.existsSync(path))throw new Error('No .env file found');const required={SANCTUM_STATEFUL_DOMAINS:'intranet.local.test,admin.local.test',SESSION_DOMAIN:'local.test',SESSION_DRIVER:'file'};let lines=fs.readFileSync(path,'utf8').split(/\\r?\\n/);const seen=new Set();lines=lines.map(l=>{const raw=l.replace(/^#+\\s*/,'');const m=raw.match(/^([^=]+)=(.*)$/);if(!m)return l;const k=m[1];if(required[k]){seen.add(k);return `${k}=${required[k]}`;}return raw;});for(const [k,v] of Object.entries(required)){if(!seen.has(k))lines.push(`${k}=${v}`);}fs.writeFileSync(path,lines.join('\\n'));console.log('✔ env:proxy → enabled proxy/domain settings');\""
   },

@@ -7,8 +7,7 @@ const FRONTEND_REFERER =
 export const requireAdmin = async (Astro: any, redirectTo = '/login') => {
   const user = await requireAuth(Astro)
 
-  const roles = Array.isArray(user?.roles) ? user.roles : []
-  if (!roles.includes('admin')) return Astro.redirect(redirectTo)
+  if (!user.is_admin) return Astro.redirect(redirectTo)
 
   return user
 }

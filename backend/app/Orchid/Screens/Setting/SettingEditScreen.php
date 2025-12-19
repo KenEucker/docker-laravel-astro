@@ -167,16 +167,19 @@ class SettingEditScreen extends Screen
 
         $data = $validated['setting'];
 
+        // Convert is_public to proper boolean (handles "1", "0", true, false, etc.)
+        $isPublic = filter_var($data['is_public'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
         // Validate value based on type
-        $this->validateValueByType($data['value'], $data['type']);
+        $this->validateValueByType($data['value'] ?? null, $data['type']);
 
         // Use the Setting model's static method for consistency
         Setting::set(
             $data['key'],
-            $data['value'],
+            $data['value'] ?? null,
             $data['type'],
             $data['description'] ?? null,
-            (bool)($data['is_public'] ?? false)
+            $isPublic
         );
 
         Toast::success(__('Setting saved successfully'));

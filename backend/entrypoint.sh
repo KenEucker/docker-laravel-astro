@@ -123,7 +123,10 @@ if [ ! -d "vendor/orchid/platform" ]; then
   echo ">> Installing Orchid Platform..."
   composer require orchid/platform --no-interaction
 
-  php artisan orchid:install --no-interaction || true
+  # Skip orchid:install - it runs migrations automatically causing conflicts
+  # Just publish the Orchid migrations and assets manually
+  php artisan vendor:publish --provider="Orchid\Platform\Providers\FoundationServiceProvider" --tag=migrations --no-interaction || true
+  php artisan vendor:publish --tag=orchid-assets --no-interaction || true
 
   composer install --no-interaction
 fi

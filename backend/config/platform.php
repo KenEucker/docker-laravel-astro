@@ -20,7 +20,7 @@ return array_replace_recursive(
         'index' => 'platform.dashboard',
 
         'template' => [
-            'header' => env('APP_NAME', 'Laravel') . ' Admin',
+            'header' => env('APP_NAME', 'LarAstro') . ' Admin',
             'footer' => 'Powered by Orchid',
         ],
     ]

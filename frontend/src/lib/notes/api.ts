@@ -3,7 +3,7 @@
  *
  * Provides functions to manage user notes.
  */
-
+import { getCookie, ensureCsrfCookie } from '../auth';
 const API_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:8000';
 
 export interface Note {
@@ -49,10 +49,12 @@ export async function fetchNotes(status?: 'active' | 'archived'): Promise<Note[]
  */
 export async function createNote(title: string, body: string): Promise<Note | null> {
   try {
+    await ensureCsrfCookie()
     const response = await fetch(`${API_URL}/api/me/notes`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-xsrf-token': getCookie('XSRF-TOKEN'),
       },
       credentials: 'include',
       body: JSON.stringify({ title, body }),
@@ -77,10 +79,12 @@ export async function updateNote(
   updates: { title?: string; body?: string }
 ): Promise<Note | null> {
   try {
+    await ensureCsrfCookie()
     const response = await fetch(`${API_URL}/api/me/notes/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        'x-xsrf-token': getCookie('XSRF-TOKEN'),
       },
       credentials: 'include',
       body: JSON.stringify(updates),
@@ -102,9 +106,13 @@ export async function updateNote(
  */
 export async function archiveNote(id: number): Promise<boolean> {
   try {
+    await ensureCsrfCookie()
     const response = await fetch(`${API_URL}/api/me/notes/${id}/archive`, {
       method: 'POST',
       credentials: 'include',
+      headers: {
+        'x-xsrf-token': getCookie('XSRF-TOKEN'),
+      },
     });
 
     return response.ok;
@@ -119,9 +127,13 @@ export async function archiveNote(id: number): Promise<boolean> {
  */
 export async function unarchiveNote(id: number): Promise<boolean> {
   try {
+    await ensureCsrfCookie()
     const response = await fetch(`${API_URL}/api/me/notes/${id}/unarchive`, {
       method: 'POST',
       credentials: 'include',
+      headers: {
+        'x-xsrf-token': getCookie('XSRF-TOKEN'),
+      },
     });
 
     return response.ok;
@@ -136,9 +148,13 @@ export async function unarchiveNote(id: number): Promise<boolean> {
  */
 export async function deleteNote(id: number): Promise<boolean> {
   try {
+    await ensureCsrfCookie()
     const response = await fetch(`${API_URL}/api/me/notes/${id}`, {
       method: 'DELETE',
       credentials: 'include',
+      headers: {
+        'x-xsrf-token': getCookie('XSRF-TOKEN'),
+      },
     });
 
     return response.ok;

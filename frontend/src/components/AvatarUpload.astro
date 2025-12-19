@@ -84,11 +84,6 @@ const API = import.meta.env.PUBLIC_API_URL ?? "http://localhost:8000";
   const avatarRemoveBtn = document.getElementById("avatarRemoveBtn");
   const avatarStatus = document.getElementById("avatarStatus");
 
-  const getCookie = (name) => {
-    const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-    return m ? decodeURIComponent(m[1]) : "";
-  };
-
   const setStatus = (msg) => {
     if (avatarStatus) avatarStatus.textContent = msg ?? "";
   };

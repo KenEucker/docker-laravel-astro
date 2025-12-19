@@ -109,18 +109,40 @@ class BlockTypeRegistry
     public static function getTypesForSelect(): array
     {
         $types = self::all();
+
         $options = [];
 
         foreach ($types as $key => $definition) {
-            $label = $definition['label'] ?? $key;
-            if ($definition['restricted'] ?? false) {
+            // definition can be array|string|object — normalize to a string label
+            if (is_array($definition)) {
+                $label = $definition['label'] ?? $definition['name'] ?? $key;
+                $restricted = (bool) ($definition['restricted'] ?? false);
+            } elseif (is_object($definition)) {
+                $label = $definition->label ?? $definition->name ?? $key;
+                $restricted = (bool) ($definition->restricted ?? false);
+            } else {
+                // if config uses 'hero' => 'Hero'
+                $label = $definition;
+                $restricted = false;
+            }
+
+            // If label is still not scalar, fall back to the key
+            if (!is_scalar($label)) {
+                $label = $key;
+            }
+
+            $label = (string) $label;
+
+            if ($restricted) {
                 $label .= ' (Restricted)';
             }
+
             $options[$key] = $label;
         }
 
         return $options;
     }
+
 
     /**
      * Sanitize block data based on type.

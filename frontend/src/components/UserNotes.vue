@@ -98,6 +98,7 @@ onMounted(() => {
 watch(showArchived, () => {
   loadNotes();
 });
+
 </script>
 
 <template>

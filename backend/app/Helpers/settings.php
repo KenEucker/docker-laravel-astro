@@ -2,6 +2,45 @@
 
 use App\Models\Setting;
 
+if (!function_exists('getSetting')) {
+    /**
+     * Get a setting value with fallback chain:
+     * 1) Provided $settings array/object (if passed)
+     * 2) Database setting
+     * 3) Environment variable
+     * 4) Default value
+     *
+     * Supports:
+     * - getSetting('APP_NAME', 'LorAstro')
+     * - getSetting($settings, 'APP_NAME', 'LorAstro')
+     */
+    function getSetting(array|object|string $settingsOrKey, string|int|float|bool|null $keyOrDefault = null, mixed $default = null): mixed
+    {
+        // Signature: getSetting('APP_NAME', 'LorAstro')
+        if (is_string($settingsOrKey)) {
+            $key = $settingsOrKey;
+            $defaultValue = $keyOrDefault; // 2nd arg is default in this form
+            return Setting::get($key, $defaultValue);
+        }
+
+        // Signature: getSetting($settings, 'APP_NAME', 'LorAstro')
+        $settings = $settingsOrKey;
+        $key = (string) $keyOrDefault;
+
+        // 1) Check provided settings bag first
+        if (is_array($settings) && array_key_exists($key, $settings)) {
+            return $settings[$key];
+        }
+
+        if (is_object($settings) && isset($settings->{$key})) {
+            return $settings->{$key};
+        }
+
+        // 2) DB -> env -> default handled by your existing model logic
+        return Setting::get($key, $default);
+    }
+}
+
 if (!function_exists('setting')) {
     /**
      * Get a setting value with fallback to environment variable.

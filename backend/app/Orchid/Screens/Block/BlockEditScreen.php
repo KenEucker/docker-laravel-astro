@@ -60,7 +60,9 @@ class BlockEditScreen extends Screen
      */
     public function permission(): ?iterable
     {
-        return $this->block->exists
+        $exists = $this->block?->exists ?? false;
+
+        return $exists
             ? ['platform.blocks.edit']
             : ['platform.blocks.create'];
     }
@@ -174,7 +176,9 @@ class BlockEditScreen extends Screen
 
         if (!$type) {
             return [
-                Layout::view('orchid.blocks.select-type-first'),
+                Label::make('block._notice')
+                    ->title('Next step')
+                    ->value('Select a Block Type above to configure this block.'),
             ];
         }
 

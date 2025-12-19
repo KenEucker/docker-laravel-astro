@@ -1,4 +1,5 @@
 import { defineConfig } from "astro/config";
+import vue from '@astrojs/vue';
 import tailwindcss from "@tailwindcss/vite";
 import { fileURLToPath } from 'url';
 
@@ -8,6 +9,7 @@ export default defineConfig({
     host: true,
     port: 3000,
   },
+  integrations: [vue()],
   vite: {
     plugins: [tailwindcss()],
     resolve: {

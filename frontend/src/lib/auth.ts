@@ -54,3 +54,8 @@ export const ensureCsrfCookie = async () => {
     },
   });
 };
+
+export const getCookie = (name: string) => {
+  const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return m ? decodeURIComponent(m[1]) : "";
+};

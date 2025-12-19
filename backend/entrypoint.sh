@@ -118,6 +118,16 @@ if [ ! -d "vendor/spatie/laravel-permission" ]; then
   composer install --no-interaction
 fi
 
+# --- orchid platform install (only once) -----------------------------------
+if [ ! -d "vendor/orchid/platform" ]; then
+  echo ">> Installing Orchid Platform..."
+  composer require orchid/platform --no-interaction
+
+  php artisan orchid:install --no-interaction || true
+
+  composer install --no-interaction
+fi
+
 # --- apply overrides (additive + *_custom append + seeders additive) ----
 apply_overrides_strict () {
   echo ">> Applying overrides (additive + *_custom include + seeders additive)..."
@@ -217,6 +227,7 @@ if [ ! -f "$SEED_ONCE_FILE" ]; then
   # IMPORTANT: remove the `|| true` while debugging so you can see real failures.
   php artisan db:seed --class="Database\\Seeders\\RolesAndPermissionsSeeder" --force
   php artisan db:seed --class="Database\\Seeders\\DefaultAdminUserSeeder" --force
+  php artisan db:seed --class="Database\\Seeders\\OrchidPermissionsSeeder" --force
 
   touch "$SEED_ONCE_FILE"
   echo ">> Seeders complete. Marker created: $SEED_ONCE_FILE"

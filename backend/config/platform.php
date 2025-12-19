@@ -14,7 +14,7 @@ return array_replace_recursive(
         'middleware' => [
             'web',
             'platform',
-            // OrchidAdminAccess::class,
+            // OrchidAdminAccess::class, // Commented out to allow file uploads for users with platform.users.edit
         ],
 
         'index' => 'platform.dashboard',

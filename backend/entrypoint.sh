@@ -106,18 +106,24 @@ if [ ! -d "vendor/laravel/breeze" ]; then
   composer install --no-interaction
 fi
 
-# --- orchid platform install (only once) -----------------------------------
-if [ ! -d "vendor/orchid/platform" ]; then
-  echo ">> Installing Orchid Platform (includes Spatie)..."
-  composer require orchid/platform --no-interaction
+# --- spatie roles/permissions install (only once) --------------------------
+if [ ! -d "vendor/spatie/laravel-permission" ]; then
+  echo ">> Installing Spatie laravel-permission..."
+  composer require spatie/laravel-permission --no-interaction
 
-  # Orchid installation
-  php artisan orchid:install --no-interaction || true
-
-  # Spatie is installed as Orchid dependency, publish its migrations
   php artisan vendor:publish \
     --provider="Spatie\Permission\PermissionServiceProvider" \
     --no-interaction || true
+
+  composer install --no-interaction
+fi
+
+# --- orchid platform install (only once) -----------------------------------
+if [ ! -d "vendor/orchid/platform" ]; then
+  echo ">> Installing Orchid Platform..."
+  composer require orchid/platform --no-interaction
+
+  php artisan orchid:install --no-interaction || true
 
   composer install --no-interaction
 fi

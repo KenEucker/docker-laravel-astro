@@ -125,7 +125,8 @@ class SettingEditScreen extends Screen
                 CheckBox::make('setting.is_public')
                     ->title('Public Visibility')
                     ->placeholder('Is this setting visible to public API endpoints?')
-                    ->help('Public settings can be accessed via /api/settings/public'),
+                    ->help('Public settings can be accessed via /api/settings/public')
+                    ->sendTrueOrFalse(),
             ]),
         ];
     }
@@ -161,7 +162,7 @@ class SettingEditScreen extends Screen
                 Rule::in(['string', 'integer', 'float', 'boolean', 'json', 'array', 'object']),
             ],
             'setting.description' => 'nullable|string',
-            'setting.is_public' => 'nullable|boolean',
+            'setting.is_public' => 'boolean',
         ]);
 
         $data = $validated['setting'];

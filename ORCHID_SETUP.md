@@ -103,7 +103,7 @@ backend/
 │   └── Orchid/
 │       ├── PlatformProvider.php           # Menu & permissions config
 │       ├── Screens/
-│       │   ├── DashboardScreen.php        # Main dashboard
+│       │   ├── DashboardScreen.php        # Main dashboard (pure Orchid layouts)
 │       │   ├── User/
 │       │   │   ├── UserListScreen.php     # User list
 │       │   │   └── UserEditScreen.php     # User create/edit
@@ -119,10 +119,6 @@ backend/
 │   └── platform.php                       # Orchid configuration
 ├── database/seeders/
 │   └── OrchidPermissionsSeeder.php        # Orchid permissions
-├── resources/views/orchid/dashboard/
-│   ├── welcome.blade.php                  # Dashboard welcome card
-│   ├── metrics.blade.php                  # Metrics card component
-│   └── quick-links.blade.php              # Quick links section
 ├── routes/
 │   └── platform.php                       # Orchid routes
 └── entrypoint.sh                          # Updated to install Orchid

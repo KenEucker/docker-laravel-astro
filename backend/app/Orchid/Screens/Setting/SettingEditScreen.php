@@ -176,7 +176,7 @@ class SettingEditScreen extends Screen
             $data['value'],
             $data['type'],
             $data['description'] ?? null,
-            $data['is_public'] ?? false
+            (bool)($data['is_public'] ?? false)
         );
 
         Toast::success(__('Setting saved successfully'));

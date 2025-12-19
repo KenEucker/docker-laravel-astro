@@ -60,14 +60,14 @@ class UserListLayout extends Table
                         Link::make(__('Edit'))
                             ->icon('bs.pencil')
                             ->route('platform.users.edit', $user)
-                            ->canSee(auth()->user()->hasPermissionTo('platform.users.edit')),
+                            ->canSee(auth()->user()->hasAccess('platform.users.edit')),
 
                         Button::make(__('Delete'))
                             ->icon('bs.trash')
                             ->method('remove')
                             ->confirm(__('Are you sure you want to delete this user?'))
                             ->parameters(['id' => $user->id])
-                            ->canSee(auth()->user()->hasPermissionTo('platform.users.delete')),
+                            ->canSee(auth()->user()->hasAccess('platform.users.delete')),
                     ])),
         ];
     }

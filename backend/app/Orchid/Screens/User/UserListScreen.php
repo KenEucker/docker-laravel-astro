@@ -59,7 +59,7 @@ class UserListScreen extends Screen
             Link::make(__('Create User'))
                 ->icon('bs.plus-circle')
                 ->route('platform.users.create')
-                ->canSee(auth()->user()->hasPermissionTo('platform.users.edit')),
+                ->canSee(auth()->user()->hasAccess('platform.users.edit')),
         ];
     }
 

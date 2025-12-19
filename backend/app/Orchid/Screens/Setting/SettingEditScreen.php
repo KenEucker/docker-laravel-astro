@@ -28,6 +28,9 @@ class SettingEditScreen extends Screen
      */
     public function query(Setting $setting): iterable
     {
+        // Ensure $this->setting is populated for name/description/commandBar conditions
+        $this->setting = $setting;
+
         return [
             'setting' => $setting,
         ];

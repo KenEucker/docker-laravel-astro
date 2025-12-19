@@ -8,73 +8,65 @@ use Orchid\Platform\Models\Role;
 class OrchidPermissionsSeeder extends Seeder
 {
     /**
-     * Run the database seeds.
-     *
-     * Permissions are stored as key=>bool maps on roles/users and checked via hasAccess().
+     * Single source of truth for the admin permission map.
+     * Anything you add here is available to both:
+     * - the admin Role
+     * - the default admin User (if you choose to assign directly)
      */
-    public function run(): void
+    public static function adminPermissions(): array
     {
-        /**
-         * Keep these exact keys to preserve existing/expected Orchid functionality.
-         * (These are "platform" permissions used by the admin panel side.)
-         */
         $platformPermissions = [
+            // Core platform entry (these matter for the 403)
+            'platform.index'     => true,
+            'platform.main'      => true,
+            'platform.dashboard' => true,
+            'platform.profile'   => true,
+            'platform.search'    => true,
+
+            // Roles
             'platform.systems.roles' => true,
 
             // Users
-            'platform.users.list'   => true,  // legacy
-            'platform.users.view'   => true,  // new
-            'platform.users.create' => true,  // new
+            'platform.users.list'   => true,
+            'platform.users.view'   => true,
+            'platform.users.create' => true,
             'platform.users.edit'   => true,
             'platform.users.delete' => true,
 
             // Settings
-            'platform.settings.list'   => true, // legacy
-            'platform.settings.view'   => true, // new
-            'platform.settings.create' => true, // new
+            'platform.settings.list'   => true,
+            'platform.settings.view'   => true,
+            'platform.settings.create' => true,
             'platform.settings.edit'   => true,
             'platform.settings.delete' => true,
         ];
 
-
-        /**
-         * API / end-user permissions (your application vocabulary).
-         * These are optional right now, but useful for gating your /api/admin routes
-         * and any future API authorization rules.
-         */
         $apiPermissions = [
             'app.admin' => true,
 
-            // Users CRUD
             'app.users.view'   => true,
             'app.users.create' => true,
             'app.users.edit'   => true,
 
-            // Settings CRUD
             'app.settings.view'   => true,
             'app.settings.create' => true,
             'app.settings.edit'   => true,
         ];
 
-        /**
-         * Admin role = global + explicit keys (stageable).
-         * Keeping '*' => true ensures you won't lock yourself out while permissions evolve.
-         */
-        $adminPermissions = array_merge(
-            ['*' => true],
-            $platformPermissions,
-            $apiPermissions,
-        );
+        // Return one merged permission map
+        return array_merge($platformPermissions, $apiPermissions);
+    }
 
+    public function run(): void
+    {
         $adminRole = Role::updateOrCreate(
             ['slug' => 'admin'],
             [
                 'name'        => 'Admin',
-                'permissions' => $adminPermissions,
+                'permissions' => self::adminPermissions(),
             ]
         );
 
         $this->command?->info("Orchid admin role ensured: {$adminRole->slug}");
-        $this->command?->info('Platform permissions + API permissions granted (including wildcard).');
     }
 }

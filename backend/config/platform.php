@@ -4,86 +4,24 @@ declare(strict_types=1);
 
 use App\Http\Middleware\OrchidAdminAccess;
 
-return [
+return array_replace_recursive(
+    require base_path('vendor/orchid/platform/config/platform.php'),
+    [
+        'domain' => env('ORCHID_DOMAIN', null),
+        'prefix' => env('ORCHID_PREFIX', 'admin'),
 
-    /*
-    |--------------------------------------------------------------------------
-    | Dashboard Domain
-    |--------------------------------------------------------------------------
-    |
-    | This is the subdomain where the Orchid admin panel will be available.
-    | Set to null to use the main application domain.
-    |
-    */
+        // keep your desired middleware for platform routes
+        'middleware' => [
+            'web',
+            'platform',
+            // OrchidAdminAccess::class,
+        ],
 
-    'domain' => env('ORCHID_DOMAIN', null),
+        'index' => 'platform.dashboard',
 
-    /*
-    |--------------------------------------------------------------------------
-    | Dashboard Route Prefix
-    |--------------------------------------------------------------------------
-    |
-    | This prefix method will be used for the Orchid admin panel.
-    |
-    */
-
-    'prefix' => env('ORCHID_PREFIX', 'admin'),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Dashboard Middleware
-    |--------------------------------------------------------------------------
-    |
-    | This middleware will be assigned to every Orchid route, giving you the
-    | chance to add your own middleware to this stack or override any of
-    | the existing middleware. Or, you can stick with this stack.
-    |
-    */
-
-    'middleware' => [
-        'web',
-        'platform',
-        // OrchidAdminAccess::class,
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Main Route
-    |--------------------------------------------------------------------------
-    |
-    | The main route is used to determine which screen will be displayed
-    | when the user navigates to the dashboard.
-    |
-    */
-
-    'index' => 'platform.dashboard',
-
-    /*
-    |--------------------------------------------------------------------------
-    | Dashboard Resource
-    |--------------------------------------------------------------------------
-    |
-    | Automatically connect the stored links.
-    |
-    */
-
-    'resource' => [
-        'stylesheets' => [],
-        'scripts'     => [],
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Template
-    |--------------------------------------------------------------------------
-    |
-    | The template used for rendering the dashboard.
-    |
-    */
-
-    'template' => [
-        'header' => env('APP_NAME', 'Laravel') . ' Admin',
-        'footer' => 'Powered by Orchid',
-    ],
-
-];
+        'template' => [
+            'header' => env('APP_NAME', 'Laravel') . ' Admin',
+            'footer' => 'Powered by Orchid',
+        ],
+    ]
+);

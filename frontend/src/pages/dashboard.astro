@@ -13,9 +13,7 @@ const API = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8000'
 
 // If your backend returns `avatar_url` (recommended), use it.
 // Otherwise, fall back to building a URL from `avatar_path`.
-const avatarUrl =
-  user?.avatar_url ??
-  (user?.avatar_path ? `${API}/storage/${String(user.avatar_path).replace(/^\/?storage\/?/, '')}` : null)
+const avatarUrl =user?.avatar_path ? `${API}/storage/${String(user.avatar_path).replace(/^\/?storage\/?/, '')}` : null
 ---
 
 <Layout title="Dashboard" isLoggedIn={true} isAdmin={user.roles.includes('admin')}>

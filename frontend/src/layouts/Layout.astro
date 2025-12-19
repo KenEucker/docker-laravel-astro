@@ -21,6 +21,7 @@ const { title, isLoggedIn, isAdmin } = Astro.props;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
+    <script type="module" src="/src/scripts/globals.ts"></script>
     <script is:inline>
       // Prevent flash of wrong theme
       if (localStorage.getItem('theme') === 'dark' || 

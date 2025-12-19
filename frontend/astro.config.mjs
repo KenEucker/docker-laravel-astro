@@ -1,13 +1,22 @@
-import { defineConfig } from 'astro/config'
+import { defineConfig } from "astro/config";
 import tailwindcss from "@tailwindcss/vite";
+import { fileURLToPath } from 'url';
 
 export default defineConfig({
-  output: 'server',
+  output: "server",
   server: {
     host: true,
     port: 3000,
   },
   vite: {
     plugins: [tailwindcss()],
+    resolve: {
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
+      },
+    },
+    server: {
+      allowedHosts: ["intranet.local.test", "admin.local.test"],
+    },
   },
-})
+});

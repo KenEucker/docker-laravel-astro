@@ -1,34 +1,41 @@
 ---
 interface Props {
-  avatarUrl?: string | null
-  userName?: string
+  avatarUrl?: string | null;
+  userName?: string;
 }
 
-const { avatarUrl, userName = 'avatar' } = Astro.props
-const API = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8000'
+const { avatarUrl, userName = "avatar" } = Astro.props;
+const API = import.meta.env.PUBLIC_API_URL ?? "http://localhost:8000";
 ---
 
 <div class="shrink-0">
-  <div class="w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-    {avatarUrl ? (
-      <img
-        id="avatarImg"
-        src={avatarUrl}
-        alt={`${userName} avatar`}
-        class="w-full h-full object-cover"
-        loading="lazy"
-      />
-    ) : (
-      <div id="avatarPlaceholder" class="w-full h-full flex items-center justify-center">
-        <label
-          for="avatarInput"
-          class="cursor-pointer text-sm text-gray-700 dark:text-gray-200 px-3 py-2 rounded bg-white/70 dark:bg-gray-800/70 hover:bg-white dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-600"
-          title="Upload an avatar"
+  <div
+    class="w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center"
+  >
+    {
+      avatarUrl ? (
+        <img
+          id="avatarImg"
+          src={avatarUrl}
+          alt={`${userName} avatar`}
+          class="w-full h-full object-cover"
+          loading="lazy"
+        />
+      ) : (
+        <div
+          id="avatarPlaceholder"
+          class="w-full h-full flex items-center justify-center"
         >
-          Upload
-        </label>
-      </div>
-    )}
+          <label
+            for="avatarInput"
+            class="cursor-pointer text-sm text-gray-700 dark:text-gray-200 px-3 py-2 rounded bg-white/70 dark:bg-gray-800/70 hover:bg-white dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-600"
+            title="Upload an avatar"
+          >
+            Upload
+          </label>
+        </div>
+      )
+    }
   </div>
 
   <!-- Upload controls -->
@@ -59,7 +66,7 @@ const API = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8000'
         id="avatarRemoveBtn"
         type="button"
         class="text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-        style={avatarUrl ? '' : 'display:none;'}
+        style={avatarUrl ? "" : "display:none;"}
       >
         Remove
       </button>
@@ -70,126 +77,144 @@ const API = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:8000'
 </div>
 
 <script define:vars={{ API }}>
-  import { ensureCsrfCookie } from '../lib/auth'
-
-  const avatarForm = document.getElementById('avatarForm')
-  const avatarInput = document.getElementById('avatarInput')
-  const avatarImg = document.getElementById('avatarImg')
-  const avatarPlaceholder = document.getElementById('avatarPlaceholder')
-  const avatarRemoveBtn = document.getElementById('avatarRemoveBtn')
-  const avatarStatus = document.getElementById('avatarStatus')
+  const avatarForm = document.getElementById("avatarForm");
+  const avatarInput = document.getElementById("avatarInput");
+  const avatarImg = document.getElementById("avatarImg");
+  const avatarPlaceholder = document.getElementById("avatarPlaceholder");
+  const avatarRemoveBtn = document.getElementById("avatarRemoveBtn");
+  const avatarStatus = document.getElementById("avatarStatus");
 
   const getCookie = (name) => {
-    const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))
-    return m ? decodeURIComponent(m[1]) : ''
-  }
+    const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+    return m ? decodeURIComponent(m[1]) : "";
+  };
 
   const setStatus = (msg) => {
-    if (avatarStatus) avatarStatus.textContent = msg ?? ''
-  }
+    if (avatarStatus) avatarStatus.textContent = msg ?? "";
+  };
+
+  const normalizeAvatarUrl = (url) => {
+    if (!url) return null;
+
+    // Already absolute (http/https) -> keep
+    if (/^https?:\/\//i.test(url)) return url;
+
+    // Relative "/storage/..." -> prefix with API origin
+    if (url.startsWith("/")) return `${API}${url}`;
+
+    // Bare "storage/..." -> prefix with API + leading slash
+    return `${API}/${url.replace(/^\/+/, "")}`;
+  };
 
   const setAvatar = (url) => {
-    if (url) {
+    const src = normalizeAvatarUrl(url);
+
+    if (src) {
       if (avatarImg) {
-        avatarImg.src = url
-        avatarImg.style.display = ''
+        avatarImg.src = src;
+        avatarImg.style.display = "";
       } else {
-        // If no <img> existed because we rendered placeholder, swap it in:
-        const wrapper = document.querySelector('.w-24.h-24.rounded-full.overflow-hidden')
+        const wrapper = document.querySelector(
+          ".w-24.h-24.rounded-full.overflow-hidden"
+        );
         if (wrapper) {
-          wrapper.innerHTML = `<img id="avatarImg" src="${url}" alt="avatar" class="w-full h-full object-cover" loading="lazy" />`
+          wrapper.innerHTML = `<img id="avatarImg" src="${src}" alt="avatar" class="w-full h-full object-cover" loading="lazy" />`;
         }
       }
-      if (avatarRemoveBtn) avatarRemoveBtn.style.display = ''
+      if (avatarRemoveBtn) avatarRemoveBtn.style.display = "";
     } else {
-      // remove -> revert to placeholder upload label
-      const wrapper = document.querySelector('.w-24.h-24.rounded-full.overflow-hidden')
+      const wrapper = document.querySelector(
+        ".w-24.h-24.rounded-full.overflow-hidden"
+      );
       if (wrapper) {
         wrapper.innerHTML = `
-          <div id="avatarPlaceholder" class="w-full h-full flex items-center justify-center">
-            <label
-              for="avatarInput"
-              class="cursor-pointer text-sm text-gray-700 dark:text-gray-200 px-3 py-2 rounded bg-white/70 dark:bg-gray-800/70 hover:bg-white dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-600"
-              title="Upload an avatar"
-            >Upload</label>
-          </div>
-        `
+        <div id="avatarPlaceholder" class="w-full h-full flex items-center justify-center">
+          <label
+            for="avatarInput"
+            class="cursor-pointer text-sm text-gray-700 dark:text-gray-200 px-3 py-2 rounded bg-white/70 dark:bg-gray-800/70 hover:bg-white dark:hover:bg-gray-800 border border-gray-300 dark:border-gray-600"
+            title="Upload an avatar"
+          >Upload</label>
+        </div>
+      `;
       }
-      if (avatarRemoveBtn) avatarRemoveBtn.style.display = 'none'
+      if (avatarRemoveBtn) avatarRemoveBtn.style.display = "none";
     }
-  }
+  };
 
-  avatarForm?.addEventListener('submit', async (e) => {
-    e.preventDefault()
-    setStatus('')
+  avatarForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    setStatus("");
 
-    const file = avatarInput?.files?.[0]
+    const file = avatarInput?.files?.[0];
     if (!file) {
-      setStatus('Choose an image first.')
-      return
+      setStatus("Choose an image first.");
+      return;
     }
 
     try {
-      console.log('Uploading avatar file:', file)
-      setStatus('Uploading...')
-      await ensureCsrfCookie()
+      console.log("Uploading avatar file:", file);
+      setStatus("Uploading...");
+      await ensureCsrfCookie();
 
-      const fd = new FormData()
-      fd.append('avatar', file)
+      const fd = new FormData();
+      fd.append("avatar", file);
 
+      console.log({ API });
       const res = await fetch(`${API}/api/user/avatar`, {
-        method: 'POST',
+        method: "POST",
         body: fd,
-        credentials: 'include',
+        credentials: "include",
         headers: {
-          'X-XSRF-TOKEN': getCookie('XSRF-TOKEN'),
+          "X-XSRF-TOKEN": getCookie("XSRF-TOKEN"),
         },
-      })
+      });
 
       if (!res.ok) {
-        const txt = await res.text()
-        console.error('Avatar upload failed:', txt)
-        setStatus('Upload failed. See console.')
+        const txt = await res.text();
+        console.error("Avatar upload failed:", txt);
+        setStatus("Upload failed. See console.");
       } else {
-        const data = await res.json()
+        const data = await res.json();
         // Cache-bust so you immediately see the new image
-        const url = data.avatar_url ? `${data.avatar_url}${data.avatar_url.includes('?') ? '&' : '?'}t=${Date.now()}` : null
-        if (url) setAvatar(url)
-        setStatus('Saved.')
+        const url = data.avatar_url
+          ? `${data.avatar_url}${data.avatar_url.includes("?") ? "&" : "?"}t=${Date.now()}`
+          : null;
+        if (url) setAvatar(url);
+        setStatus("Saved.");
       }
     } catch (err) {
-      console.error(err)
-      setStatus('Upload failed. See console.')
+      console.error(err);
+      setStatus("Upload failed. See console.");
     }
-  })
+  });
 
-  avatarRemoveBtn?.addEventListener('click', async () => {
-    setStatus('')
+  avatarRemoveBtn?.addEventListener("click", async () => {
+    setStatus("");
     try {
-      setStatus('Removing...')
-      await ensureCsrfCookie()
+      setStatus("Removing...");
+      await ensureCsrfCookie();
 
       const res = await fetch(`${API}/api/user/avatar`, {
-        method: 'DELETE',
-        credentials: 'include',
+        method: "DELETE",
+        credentials: "include",
         headers: {
-          'X-XSRF-TOKEN': getCookie('XSRF-TOKEN'),
+          "X-XSRF-TOKEN": getCookie("XSRF-TOKEN"),
         },
-      })
+      });
 
       if (!res.ok) {
-        const txt = await res.text()
-        console.error('Avatar remove failed:', txt)
-        setStatus('Remove failed. See console.')
-        return
+        const txt = await res.text();
+        console.error("Avatar remove failed:", txt);
+        setStatus("Remove failed. See console.");
+        return;
       }
 
-      setAvatar(null)
-      if (avatarInput) avatarInput.value = ''
-      setStatus('Removed.')
+      setAvatar(null);
+      if (avatarInput) avatarInput.value = "";
+      setStatus("Removed.");
     } catch (err) {
-      console.error(err)
-      setStatus('Remove failed. See console.')
+      console.error(err);
+      setStatus("Remove failed. See console.");
     }
-  })
+  });
 </script>

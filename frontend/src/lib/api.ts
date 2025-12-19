@@ -147,7 +147,6 @@ export async function changePassword(
     credentials: 'include',
     headers: {
       Accept: "application/json",
-      Origin: FRONTEND_ORIGIN,
       Referer: `${FRONTEND_ORIGIN}/`,
     },
     body: JSON.stringify({ current_password, password, password_confirmation }),

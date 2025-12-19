@@ -1,4 +1,32 @@
 services:
+  # ---------------------------------------------------------------------------
+  # Edge reverse proxy (routes by hostname using container labels)
+  # Enabled only when profile "proxy" is used.
+  # ---------------------------------------------------------------------------
+  caddy:
+    profiles: ["proxy"]
+    image: lucaslorentz/caddy-docker-proxy:2.9-alpine
+    ports:
+      - "80:80"
+      # Enable in production when you have real DNS pointed at your server:
+      # - "443:443"
+    environment:
+      # Must match the network name that caddy + upstream services share.
+      - CADDY_INGRESS_NETWORKS=${CADDY_INGRESS_NETWORKS:-web}
+      - CADDY_GLOBAL_OPTIONS=${CADDY_GLOBAL_OPTIONS:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - web
+    depends_on:
+      - laravel
+      - astro
+
+  # ---------------------------------------------------------------------------
+  # Database (internal only; host port mapping optional)
+  # ---------------------------------------------------------------------------
   db:
     image: mysql:8.0
     environment:
@@ -8,6 +36,7 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootsecret}
     volumes:
       - dbdata:/var/lib/mysql
+    # Optional: keep this if you want to connect from your host machine (TablePlus, etc.)
     ports:
       - "${DB_HOST_PORT:-3307}:3306"
     healthcheck:
@@ -15,22 +44,18 @@ services:
       interval: 3s
       timeout: 5s
       retries: 40
+    networks:
+      - internal
 
+  # ---------------------------------------------------------------------------
+  # Laravel (API + Orchid admin UI)
+  # ---------------------------------------------------------------------------
   laravel:
     build:
       context: ./backend
     working_dir: /var/www/html/app
     env_file:
       - ./.env
-    environment:
-      # Ensure Docker-network DB port (not host-mapped port)
-      DB_HOST: ${DB_HOST:-db}
-      DB_PORT: ${DB_PORT:-3306}
-
-      # Make Sanctum happy for SPA auth
-      SANCTUM_STATEFUL_DOMAINS: ${SANCTUM_STATEFUL_DOMAINS:-localhost:3000,localhost}
-      SESSION_DOMAIN: ${SESSION_DOMAIN:-localhost}
-      SESSION_DRIVER: ${SESSION_DRIVER:-cookie}
     volumes:
       # Full Laravel app lives here (persistent)
       - laravel_app:/var/www/html/app
@@ -45,9 +70,26 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      - "8000:8000"
 
+    # Localhost fallback (when NOT using caddy)
+    ports:
+      - "${LARAVEL_HOST_PORT:-8000}:8000"
+
+    networks:
+      - internal
+      - web
+
+    # Caddy labels only matter when caddy is running (profile proxy)
+    labels:
+      # Route: admin hostname -> laravel:8000
+      # Dev:  ADMIN_HOSTNAME=admin.local.test
+      # Prod: ADMIN_HOSTNAME=admin.company.com
+      caddy: http://${ADMIN_HOSTNAME:-admin.local.test}
+      caddy.reverse_proxy: "{{upstreams 8000}}"
+
+  # ---------------------------------------------------------------------------
+  # Astro (intranet UI)
+  # ---------------------------------------------------------------------------
   astro:
     build:
       context: ./frontend
@@ -58,16 +100,39 @@ services:
       - ./frontend:/app
       - astro_node_modules:/app/node_modules
     environment:
-      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8000}
-      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://laravel:8000}
+      # Dev file watching
       CHOKIDAR_USEPOLLING: "true"
       CHOKIDAR_INTERVAL: "250"
       WATCHPACK_POLLING: "true"
+
+    # Localhost fallback (when NOT using caddy)
     ports:
-      - "3000:3000"
+      - "${ASTRO_HOST_PORT:-3000}:3000"
+
+    networks:
+      - internal
+      - web
+
+    labels:
+      # Route: intranet hostname -> astro:3000
+      # Dev:  INTRANET_HOSTNAME=intranet.local.test
+      # Prod: INTRANET_HOSTNAME=intranet.company.com
+      caddy: http://${INTRANET_HOSTNAME:-intranet.local.test}
+      caddy.reverse_proxy: "{{upstreams 3000}}"
 
 volumes:
   dbdata:
   laravel_app:
   laravel_uploads:
   astro_node_modules:
+  caddy_data:
+  caddy_config:
+
+networks:
+  # Public-facing network: only Caddy binds host ports (when enabled),
+  # but services are reachable by Caddy here.
+  web:
+    name: ${CADDY_INGRESS_NETWORKS:-web}
+  # Internal network: app-to-app traffic (astro <-> laravel <-> db)
+  internal:
+    driver: bridge

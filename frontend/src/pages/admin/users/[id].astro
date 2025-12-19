@@ -8,8 +8,10 @@ if (admin.redirected === false) {
 }
 const { id } = Astro.params;
 
-const apiBase = import.meta.env.PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+const apiBase = import.meta.env.PUBLIC_API_URL ?? "http://localhost:8000";
 const API_INTERNAL = import.meta.env.API_INTERNAL_URL || "http://laravel:8000";
+const FRONTEND_REFERER =
+  import.meta.env.PUBLIC_SITE_URL || 'http://localhost:3000'
 
 const cookie = Astro.request.headers.get("cookie") ?? "";
 
@@ -19,8 +21,7 @@ const fetchJson = async (path: string) => {
       cookie,
       accept: "application/json",
       "x-requested-with": "XMLHttpRequest",
-      origin: "http://localhost:3000",
-      referer: "http://localhost:3000/",
+      referer: FRONTEND_REFERER,
     },
     credentials: "include",
   });
@@ -110,7 +111,6 @@ const [user, roles, permissions] = await Promise.all([
   </div>
 
   <script define:vars={{ apiBase, id }}>
-    import { ensureCsrfCookie } from "../../lib/auth";
     const form = document.getElementById("acl-form");
     const statusEl = document.getElementById("status");
 

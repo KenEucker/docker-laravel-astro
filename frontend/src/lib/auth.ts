@@ -1,8 +1,7 @@
 // src/lib/auth.ts
-const API_PUBLIC = import.meta.env.PUBLIC_API_URL || 'http://localhost:8000'
+const PUBLIC_API = import.meta.env.PUBLIC_API_URL || 'http://localhost:8000'
 const API_INTERNAL = import.meta.env.API_INTERNAL_URL || 'http://laravel:8000'
-
-const FRONTEND_ORIGIN =
+const FRONTEND_REFERER =
   import.meta.env.PUBLIC_SITE_URL || 'http://localhost:3000'
 
 export const requireAdmin = async (Astro: any, redirectTo = '/login') => {
@@ -16,14 +15,18 @@ export const requireAdmin = async (Astro: any, redirectTo = '/login') => {
 
 export const requireUser = async (Astro: any) => {
   const cookie = Astro.request.headers.get('cookie') ?? ''
+  const publicHost = new URL(PUBLIC_API).host
+  const publicProto = new URL(PUBLIC_API).protocol.replace(':', '')
 
   const res = await fetch(`${API_INTERNAL}/api/me`, {
     headers: {
       Accept: 'application/json',
-      'X-Requested-With': 'XMLHttpRequest',
       Cookie: cookie,
-      Origin: FRONTEND_ORIGIN,
-      Referer: `${FRONTEND_ORIGIN}/`,
+      Referer: `${FRONTEND_REFERER}/`,
+      Host: publicHost,
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-Forwarded-Host': publicHost,
+      'X-Forwarded-Proto': publicProto,
     },
   })
 
@@ -44,7 +47,7 @@ export const redirectIfAuthed = async (Astro: any, redirectTo = '/dashboard') =>
 }
 
 export const ensureCsrfCookie = async () => {
-  await fetch(`${API_PUBLIC}/sanctum/csrf-cookie`, {
+  await fetch(`${PUBLIC_API}/sanctum/csrf-cookie`, {
     credentials: "include",
     headers: {
       accept: "application/json",

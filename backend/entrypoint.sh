@@ -50,12 +50,23 @@ fi
 # Write/update keys from runtime env (idempotent)
 php -r '
   $path = ".env";
-  $env = file_exists($path) ? file_get_contents($path) : "";
+  $map = [];
+
+  // Load existing .env into map (last wins)
+  if (file_exists($path)) {
+    foreach (file($path, FILE_IGNORE_NEW_LINES) as $line) {
+      if ($line === "" || $line[0] === "#") continue;
+      if (!str_contains($line, "=")) continue;
+      [$k,$v] = explode("=", $line, 2);
+      $map[$k] = $v;
+    }
+  }
 
   $pairs = [
     "APP_ENV" => getenv("APP_ENV") ?: "local",
     "APP_DEBUG" => getenv("APP_DEBUG") ?: "true",
     "APP_URL" => getenv("APP_URL") ?: "http://localhost:8000",
+    "FRONTEND_URL" => getenv("FRONTEND_URL") ?: "http://localhost:3000",
 
     "DB_CONNECTION" => getenv("DB_CONNECTION") ?: "mysql",
     "DB_HOST" => getenv("DB_HOST") ?: "db",
@@ -66,21 +77,22 @@ php -r '
 
     "SANCTUM_STATEFUL_DOMAINS" => getenv("SANCTUM_STATEFUL_DOMAINS") ?: "localhost:3000,localhost",
     "SESSION_DOMAIN" => getenv("SESSION_DOMAIN") ?: "localhost",
-    "SESSION_DRIVER" => getenv("SESSION_DRIVER") ?: "cookie",
+    "SESSION_DRIVER" => getenv("SESSION_DRIVER") ?: "file",
     "SESSION_SECURE_COOKIE" => getenv("SESSION_SECURE_COOKIE") ?: "false",
   ];
 
   foreach ($pairs as $k => $v) {
-    $v = str_replace(["\n","\r"], "", $v);
-    if (preg_match("/^".preg_quote($k,"/")."=.*/m", $env)) {
-      $env = preg_replace("/^".preg_quote($k,"/")."=.*/m", $k."=".$v, $env);
-    } else {
-      $env .= (substr($env, -1)==="\n" || $env==="" ? "" : "\n") . $k."=".$v."\n";
-    }
+    $map[$k] = str_replace(["\n","\r"], "", $v);
   }
 
-  file_put_contents($path, $env);
+  $out = "";
+  foreach ($map as $k => $v) {
+    $out .= $k . "=" . $v . "\n";
+  }
+
+  file_put_contents($path, $out);
 '
+php artisan optimize:clear || true
 
 # --- install deps -----------------------------------------------------------
 echo ">> composer install"

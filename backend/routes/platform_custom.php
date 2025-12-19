@@ -7,6 +7,8 @@ use App\Orchid\Screens\User\UserEditScreen;
 use App\Orchid\Screens\User\UserListScreen;
 use App\Orchid\Screens\Setting\SettingEditScreen;
 use App\Orchid\Screens\Setting\SettingListScreen;
+use App\Orchid\Screens\Block\BlockEditScreen;
+use App\Orchid\Screens\Block\BlockListScreen;
 use Illuminate\Support\Facades\Route;
 use Tabuna\Breadcrumbs\Trail;
 
@@ -26,6 +28,25 @@ Route::screen('/dashboard', DashboardScreen::class)
     ->name('platform.dashboard')
     ->breadcrumbs(fn (Trail $trail) => $trail
         ->push(__('Dashboard'), route('platform.dashboard')));
+
+// Block Management
+Route::screen('blocks', BlockListScreen::class)
+    ->name('platform.blocks.list')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.dashboard')
+        ->push(__('Blocks'), route('platform.blocks.list')));
+
+Route::screen('blocks/create', BlockEditScreen::class)
+    ->name('platform.blocks.create')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.blocks.list')
+        ->push(__('Create Block')));
+
+Route::screen('blocks/{block}/edit', BlockEditScreen::class)
+    ->name('platform.blocks.edit')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.blocks.list')
+        ->push(__('Edit Block')));
 
 // User Management
 Route::screen('users', UserListScreen::class)

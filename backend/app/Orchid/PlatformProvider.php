@@ -37,10 +37,17 @@ class PlatformProvider extends OrchidServiceProvider
                 ->route('platform.dashboard')
                 ->title(__('Navigation')),
 
+            Menu::make(__('Blocks'))
+                ->icon('bs.grid-3x3-gap')
+                ->route('platform.blocks.list')
+                ->permission('platform.blocks.view')
+                ->title(__('Content')),
+
             Menu::make(__('Users'))
                 ->icon('bs.people')
                 ->route('platform.users.list')
-                ->permission('platform.users.list'),
+                ->permission('platform.users.list')
+                ->title(__('System')),
 
             Menu::make(__('Settings'))
                 ->icon('bs.gear')
@@ -64,6 +71,16 @@ class PlatformProvider extends OrchidServiceProvider
         return [
             ItemPermission::group(__('System'))
                 ->addPermission('platform.systems.roles', __('Roles')),
+
+            ItemPermission::group(__('Content Blocks'))
+                ->addPermission('platform.blocks.view', __('View Blocks'))
+                ->addPermission('platform.blocks.create', __('Create Blocks'))
+                ->addPermission('platform.blocks.edit', __('Edit Blocks'))
+                ->addPermission('platform.blocks.publish', __('Publish Blocks'))
+                ->addPermission('platform.blocks.delete', __('Delete Blocks'))
+                ->addPermission('platform.blocks.manage_html', __('Manage HTML Blocks'))
+                ->addPermission('platform.blocks.manage_locked', __('Manage Locked Blocks'))
+                ->addPermission('platform.blocks.manage_visibility', __('Manage Block Visibility')),
 
             ItemPermission::group(__('Users'))
                 ->addPermission('platform.users.list', __('View Users'))

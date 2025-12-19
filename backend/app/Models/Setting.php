@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
+use Orchid\Screen\AsSource;
 
 class Setting extends Model
 {
+    use AsSource;
+
     protected $fillable = [
         'key',
         'value',

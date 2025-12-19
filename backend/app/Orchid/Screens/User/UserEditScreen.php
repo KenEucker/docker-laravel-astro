@@ -117,7 +117,7 @@ class UserEditScreen extends Screen
                     ->title('Avatar')
                     ->storage('public')
                     ->acceptedFiles('image/*')
-                    ->maxFileSize(5)
+                    // ->maxFileSize(5)
                     ->help('Maximum file size: 5MB'),
 
                 // IMPORTANT:

@@ -218,71 +218,82 @@ else
   echo ">> Seeders already ran (marker exists): $SEED_ONCE_FILE"
 fi
 
-# --- hot reload file watcher (background) ------------------------------------
+# --- hot reload file watcher (background, polling-based) -------------------
 start_file_watcher () {
-  echo ">> Starting hot reload file watcher..."
+  echo ">> Starting hot reload file watcher (polling mode)..."
 
-  # Run in background, watch /overrides/* for changes
+  POLL_INTERVAL="${LARAVEL_WATCH_INTERVAL:-2}"
+  STATE_FILE="/tmp/file_watcher_state"
+
+  # Initialize state file with current timestamps
+  find /overrides -type f 2>/dev/null | while read -r f; do
+    stat -c "%Y %n" "$f" 2>/dev/null || true
+  done > "$STATE_FILE"
+
+  # Run polling loop in background
   (
     while true; do
-      inotifywait -r -e modify,create,delete,move \
-        /overrides/app \
-        /overrides/database \
-        /overrides/routes \
-        /overrides/config \
-        /overrides/bootstrap \
-        2>/dev/null | while read -r path action file; do
+      sleep "$POLL_INTERVAL"
 
-        # Determine which override directory was modified
-        override_dir=$(echo "$path" | sed 's|^/overrides/\([^/]*\).*|\1|')
+      # Check each override directory for changes
+      for d in app bootstrap database routes config; do
+        SRC="/overrides/$d"
+        [ -d "$SRC" ] || continue
 
-        # Calculate relative path from override directory
-        rel_path="${path#/overrides/$override_dir/}$file"
-        target="$APP_DIR/$override_dir/$rel_path"
-        source_file="$path$file"
+        # Find all files and check if they're newer than last check
+        find "$SRC" -type f 2>/dev/null | while read -r source_file; do
+          # Calculate target path
+          rel="${source_file#$SRC/}"
+          target="$APP_DIR/$d/$rel"
 
-        echo ">> [Hot reload] Change detected: $override_dir/$rel_path"
+          # Check if file needs syncing (source newer than target, or target missing)
+          if [ ! -f "$target" ] || [ "$source_file" -nt "$target" ]; then
+            echo ">> [Hot reload] Change detected: $d/$rel"
 
-        # Handle different actions
-        case "$action" in
-          CREATE|MODIFY|MOVED_TO)
-            if [ -f "$source_file" ]; then
-              mkdir -p "$(dirname "$target")"
-              cp -f "$source_file" "$target"
-              echo ">> [Hot reload] Synced: $override_dir/$rel_path"
+            mkdir -p "$(dirname "$target")"
+            cp -f "$source_file" "$target"
+            echo ">> [Hot reload] Synced: $d/$rel"
 
-              # If it's a new PHP class, refresh autoloader
-              if echo "$file" | grep -q '\.php$' && [ "$override_dir" = "app" ]; then
-                (cd "$APP_DIR" && composer dump-autoload -o --no-interaction >/dev/null 2>&1) &
-                echo ">> [Hot reload] Refreshing autoloader..."
-              fi
+            # If it's a PHP file in app directory, refresh autoloader
+            if echo "$rel" | grep -q '\.php$' && [ "$d" = "app" ]; then
+              (cd "$APP_DIR" && composer dump-autoload -o --no-interaction >/dev/null 2>&1) &
+              echo ">> [Hot reload] Refreshing autoloader..."
+            fi
 
-              # If it's a config file, clear config cache
-              if [ "$override_dir" = "config" ]; then
-                (cd "$APP_DIR" && php artisan config:clear >/dev/null 2>&1) &
-                echo ">> [Hot reload] Cleared config cache"
-              fi
+            # If it's a config file, clear config cache
+            if [ "$d" = "config" ]; then
+              (cd "$APP_DIR" && php artisan config:clear >/dev/null 2>&1) &
+              echo ">> [Hot reload] Cleared config cache"
+            fi
 
-              # If it's a route file, clear route cache
-              if [ "$override_dir" = "routes" ]; then
-                (cd "$APP_DIR" && php artisan route:clear >/dev/null 2>&1) &
-                echo ">> [Hot reload] Cleared route cache"
+            # If it's a route file, clear route cache
+            if [ "$d" = "routes" ]; then
+              (cd "$APP_DIR" && php artisan route:clear >/dev/null 2>&1) &
+              echo ">> [Hot reload] Cleared route cache"
+            fi
+
+            # Handle *_custom.php files - ensure they're wired into base files
+            if echo "$rel" | grep -q '_custom\.php$' && { [ "$d" = "routes" ] || [ "$d" = "config" ]; }; then
+              base_rel="$(printf "%s" "$rel" | sed 's/_custom\.php$/.php/')"
+              base="$APP_DIR/$d/$base_rel"
+              custom_basename="$(basename "$rel")"
+
+              if [ -f "$base" ]; then
+                require_line="require __DIR__.'/$custom_basename';"
+                if ! grep -Fq "$require_line" "$base"; then
+                  echo ">> [Hot reload] Wiring $custom_basename into $d/$base_rel"
+                  printf "\n// auto-included from overrides\n%s\n" "$require_line" >> "$base"
+                fi
               fi
             fi
-            ;;
-          DELETE|MOVED_FROM)
-            if [ -f "$target" ]; then
-              rm -f "$target"
-              echo ">> [Hot reload] Removed: $override_dir/$rel_path"
-            fi
-            ;;
-        esac
+          fi
+        done
       done
     done
   ) &
 
   WATCHER_PID=$!
-  echo ">> Hot reload file watcher started (PID: $WATCHER_PID)"
+  echo ">> Hot reload file watcher started (PID: $WATCHER_PID, polling every ${POLL_INTERVAL}s)"
 }
 
 start_file_watcher

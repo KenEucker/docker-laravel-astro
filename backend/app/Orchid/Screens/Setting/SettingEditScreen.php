@@ -28,6 +28,9 @@ class SettingEditScreen extends Screen
      */
     public function query(Setting $setting): iterable
     {
+        // Ensure $this->setting is populated for name/description/commandBar conditions
+        $this->setting = $setting;
+
         return [
             'setting' => $setting,
         ];
@@ -91,7 +94,7 @@ class SettingEditScreen extends Screen
                     ->placeholder('e.g., APP_NAME, MAX_UPLOAD_SIZE')
                     ->help('Unique identifier for this setting')
                     ->required()
-                    ->disabled($this->setting->exists),
+                    ->readonly($this->setting->exists),
 
                 Select::make('setting.type')
                     ->title('Type')
@@ -122,7 +125,8 @@ class SettingEditScreen extends Screen
                 CheckBox::make('setting.is_public')
                     ->title('Public Visibility')
                     ->placeholder('Is this setting visible to public API endpoints?')
-                    ->help('Public settings can be accessed via /api/settings/public'),
+                    ->help('Public settings can be accessed via /api/settings/public')
+                    ->sendTrueOrFalse(),
             ]),
         ];
     }
@@ -134,8 +138,7 @@ class SettingEditScreen extends Screen
     {
         return 'Examples:
 • String: "Hello World"
-• Integer: 100
-• Float: 99.99
+• Number: 100
 • Boolean: 1 (true) or 0 (false)
 • JSON/Array/Object: {"key": "value"} or ["item1", "item2"]';
     }
@@ -172,7 +175,7 @@ class SettingEditScreen extends Screen
             $data['value'],
             $data['type'],
             $data['description'] ?? null,
-            $data['is_public'] ?? false
+            (bool)($data['is_public'] ?? false)
         );
 
         Toast::success(__('Setting saved successfully'));

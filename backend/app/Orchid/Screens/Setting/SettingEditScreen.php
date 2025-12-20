@@ -175,7 +175,7 @@ class SettingEditScreen extends Screen
             $data['value'],
             $data['type'],
             $data['description'] ?? null,
-            (bool)($data['is_public'] ?? false)
+            (bool) ($data['is_public'] ?? false)
         );
 
         Toast::success(__('Setting saved successfully'));
@@ -202,19 +202,19 @@ class SettingEditScreen extends Screen
 
         switch ($type) {
             case 'integer':
-                if (!is_numeric($value) || (int)$value != $value) {
+                if (! is_numeric($value) || (int) $value != $value) {
                     throw new \InvalidArgumentException('Value must be a valid integer');
                 }
                 break;
 
             case 'float':
-                if (!is_numeric($value)) {
+                if (! is_numeric($value)) {
                     throw new \InvalidArgumentException('Value must be a valid number');
                 }
                 break;
 
             case 'boolean':
-                if (!in_array($value, ['0', '1', 'true', 'false'], true)) {
+                if (! in_array($value, ['0', '1', 'true', 'false'], true)) {
                     throw new \InvalidArgumentException('Value must be 0, 1, true, or false');
                 }
                 break;
@@ -224,7 +224,7 @@ class SettingEditScreen extends Screen
             case 'object':
                 $decoded = json_decode($value);
                 if (json_last_error() !== JSON_ERROR_NONE) {
-                    throw new \InvalidArgumentException('Value must be valid JSON: ' . json_last_error_msg());
+                    throw new \InvalidArgumentException('Value must be valid JSON: '.json_last_error_msg());
                 }
                 break;
         }

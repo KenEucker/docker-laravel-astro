@@ -35,7 +35,7 @@ class UserNoteController extends Controller
         $notes = $query->get();
 
         return response()->json([
-            'notes' => $notes->map(fn($note) => [
+            'notes' => $notes->map(fn ($note) => [
                 'id' => $note->id,
                 'title' => $note->title,
                 'body' => $note->body,

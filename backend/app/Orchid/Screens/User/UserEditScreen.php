@@ -170,7 +170,7 @@ class UserEditScreen extends Screen
 
         // Temporarily remove avatar_path for initial save if it's in temp folder
         $tempAvatarPath = null;
-        if (!empty($userData['avatar_path']) && str_starts_with($userData['avatar_path'], 'avatars/temp/')) {
+        if (! empty($userData['avatar_path']) && str_starts_with($userData['avatar_path'], 'avatars/temp/')) {
             $tempAvatarPath = $userData['avatar_path'];
             unset($userData['avatar_path']);
         }
@@ -182,8 +182,8 @@ class UserEditScreen extends Screen
         // Now move avatar from temp to user-specific folder if needed
         if ($tempAvatarPath) {
             $filename = basename($tempAvatarPath);
-            $userDir = 'avatars/' . $user->id;
-            $finalPath = $userDir . '/' . $filename;
+            $userDir = 'avatars/'.$user->id;
+            $finalPath = $userDir.'/'.$filename;
 
             // Move the file from temp to user folder
             if (Storage::disk('public')->exists($tempAvatarPath)) {

@@ -50,11 +50,7 @@ export async function getPublicSettings(cookie?: string): Promise<PublicSettings
  * @param defaultValue - Default value if setting not found in DB or env
  * @returns The setting value or default
  */
-export function getSetting<T = any>(
-  settings: PublicSettings,
-  key: string,
-  defaultValue: T
-): T {
+export function getSetting<T = any>(settings: PublicSettings, key: string, defaultValue: T): T {
   // First, check if setting exists in database
   if (settings[key] !== undefined) {
     return settings[key]

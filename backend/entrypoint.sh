@@ -4,14 +4,123 @@ set -eu
 APP_DIR="/var/www/html/app"
 TMP_DIR="/tmp/laravel_src"
 
-echo ">> Laravel entrypoint starting..."
+# -----------------------------------------------------------------------------
+# Logging (colors + GitHub Actions groups)
+# -----------------------------------------------------------------------------
+
+# Disable colors if not a TTY or if NO_COLOR is set
+USE_COLOR=1
+if [ ! -t 1 ] || [ "${NO_COLOR:-}" != "" ]; then
+  USE_COLOR=0
+fi
+
+RESET=""
+BOLD=""
+BG_GRAY=""
+BG_BLUE=""
+BG_GREEN=""
+BG_YELLOW=""
+BG_RED=""
+BG_CYAN=""
+FG_WHITE=""
+FG_BLACK=""
+
+# if [ "$USE_COLOR" -eq 1 ]; then
+  RESET="\033[0m"
+  BOLD="\033[1m"
+
+  BG_GRAY="\033[100m"
+  BG_BLUE="\033[44m"
+  BG_GREEN="\033[42m"
+  BG_YELLOW="\033[43m"
+  BG_RED="\033[41m"
+  BG_CYAN="\033[46m"
+
+  FG_WHITE="\033[97m"
+  FG_BLACK="\033[30m"
+# fi
+
+ts() { date "+%H:%M:%S"; }
+
+badge () {
+  # badge "LABEL" "BG+FG"
+  printf "%b%s%b" "$2" "$1" "$RESET"
+}
+
+log_line () {
+  # log_line "BADGE" "message"
+  printf "%s  %s %s\n" "$(ts)" "$1" "$2"
+}
+
+step () {
+  printf "\n%s  %b==>%b %s\n" "$(ts)" "$BOLD" "$RESET" "$1"
+}
+
+# GitHub Actions grouping
+ga_group_open () {
+  if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+    printf "::group::%s\n" "$1"
+  else
+    step "$1"
+  fi
+}
+
+ga_group_close () {
+  if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+    printf "::endgroup::\n"
+  fi
+}
+
+# Badged log helpers
+log_ok()    { log_line "$(badge " OK   " "$BG_GREEN$FG_BLACK")" "$1"; }
+log_warn()  { log_line "$(badge " WARN " "$BG_YELLOW$FG_BLACK")" "$1"; }
+log_err()   { log_line "$(badge " ERROR" "$BG_RED$FG_WHITE")" "$1"; }
+log_wait()  { log_line "$(badge " WAIT " "$BG_CYAN$FG_BLACK")" "$1"; }
+log_run()   { log_line "$(badge " RUN  " "$BG_CYAN$FG_BLACK")" "$1"; }
+
+log_sync()  { log_line "$(badge " SYNC " "$BG_CYAN$FG_BLACK")" "$1"; }
+log_copy()  { log_line "$(badge " COPY " "$BG_BLUE$FG_WHITE")" "$1"; }
+log_over()  { log_line "$(badge " OVER " "$BG_BLUE$FG_WHITE")" "$1"; } # overwrite
+log_add()   { log_line "$(badge " ADD  " "$BG_GREEN$FG_BLACK")" "$1"; }
+log_wire()  { log_line "$(badge " WIRE " "$BG_CYAN$FG_BLACK")" "$1"; }
+log_skip()  { log_line "$(badge " SKIP " "$BG_GRAY$FG_WHITE")" "$1"; }
+log_hot()   { log_line "$(badge " HOT  " "$BG_CYAN$FG_BLACK")" "$1"; }
+
+# -----------------------------------------------------------------------------
+# Summary counters
+# -----------------------------------------------------------------------------
+RESET_COUNTS () {
+  COUNT_SYNC=0
+  COUNT_COPY=0
+  COUNT_OVER=0
+  COUNT_ADD=0
+  COUNT_WIRE=0
+  COUNT_SKIP=0
+  COUNT_HOT=0
+}
+RESET_COUNTS
+
+summarize () {
+  step "Overrides summary"
+  log_line "$(badge " SYNC " "$BG_CYAN$FG_BLACK")" "overlay directories processed: $COUNT_SYNC"
+  log_line "$(badge " COPY " "$BG_BLUE$FG_WHITE")" "files copied (new):            $COUNT_COPY"
+  log_line "$(badge " OVER " "$BG_BLUE$FG_WHITE")" "files overwritten:             $COUNT_OVER"
+  log_line "$(badge " ADD  " "$BG_GREEN$FG_BLACK")" "custom/additive files copied:  $COUNT_ADD"
+  log_line "$(badge " WIRE " "$BG_CYAN$FG_BLACK")" "base files appended (wired):   $COUNT_WIRE"
+  log_line "$(badge " SKIP " "$BG_GRAY$FG_WHITE")" "skips:                         $COUNT_SKIP"
+}
+
+# -----------------------------------------------------------------------------
+# Start
+# -----------------------------------------------------------------------------
+step "Laravel entrypoint starting"
 mkdir -p "$APP_DIR"
 
 # --- wait for DB (mysql) ---------------------------------------------------
 if [ "${DB_CONNECTION:-mysql}" = "mysql" ]; then
-  echo ">> Waiting for MySQL at ${DB_HOST:-db}:${DB_PORT:-3306}..."
+  ga_group_open "Waiting for MySQL (${DB_HOST:-db}:${DB_PORT:-3306})"
   for i in $(seq 1 60); do
-    php -r '
+    if php -r '
       $h=getenv("DB_HOST") ?: "db";
       $p=(int)(getenv("DB_PORT") ?: 3306);
       $db=getenv("DB_DATABASE") ?: "app";
@@ -21,38 +130,51 @@ if [ "${DB_CONNECTION:-mysql}" = "mysql" ]; then
         new PDO("mysql:host=$h;port=$p;dbname=$db", $u, $pw, [PDO::ATTR_TIMEOUT=>2]);
         exit(0);
       } catch (Throwable $e) { exit(1); }
-    ' && break || true
+    '; then
+      log_ok "MySQL is reachable"
+      break
+    fi
+
+    if [ "$i" -eq 60 ]; then
+      log_err "MySQL not reachable after 60 attempts"
+      exit 1
+    fi
+
+    log_wait "MySQL not ready (attempt $i/60)..."
     sleep 2
   done
+  ga_group_close
 fi
 
 # --- scaffold laravel if missing -------------------------------------------
+ga_group_open "Ensuring Laravel app exists"
 if [ ! -f "$APP_DIR/artisan" ]; then
-  echo ">> No artisan found. Scaffolding Laravel into temp dir then copying into volume..."
+  log_warn "No artisan found. Scaffolding Laravel into temp dir then copying into volume..."
   rm -rf "$TMP_DIR"
   mkdir -p "$TMP_DIR"
   cd "$TMP_DIR"
   composer create-project laravel/laravel . --no-interaction --no-scripts
   mkdir -p "$APP_DIR"
   cp -a ./. "$APP_DIR/"
+  log_ok "Laravel scaffold copied into $APP_DIR"
 else
-  echo ">> Laravel already present (artisan found). Skipping scaffold."
+  log_ok "Laravel already present (artisan found)"
 fi
+ga_group_close
 
 cd "$APP_DIR"
 
 # --- ensure .env exists and has required keys ------------------------------
+ga_group_open "Ensuring .env exists and syncing required keys"
 if [ ! -f .env ]; then
-  echo ">> Creating .env from .env.example"
+  log_warn "Creating .env from .env.example"
   cp .env.example .env
 fi
 
-# Write/update keys from runtime env (idempotent)
 php -r '
   $path = ".env";
   $map = [];
 
-  // Load existing .env into map (last wins)
   if (file_exists($path)) {
     foreach (file($path, FILE_IGNORE_NEW_LINES) as $line) {
       if ($line === "" || $line[0] === "#") continue;
@@ -92,56 +214,87 @@ php -r '
 
   file_put_contents($path, $out);
 '
-php artisan optimize:clear || true
+log_ok ".env synchronized"
+ga_group_close
+
+# Clear cached artifacts early (safe)
+log_run "php artisan optimize:clear"
+php artisan optimize:clear >/dev/null 2>&1 || true
+log_ok "Caches cleared"
 
 # --- install deps -----------------------------------------------------------
-echo ">> composer install"
+ga_group_open "Composer install"
+log_run "composer install"
 composer install --no-interaction
+log_ok "Composer dependencies installed"
+ga_group_close
 
 # --- breeze api install (only once) ----------------------------------------
+ga_group_open "Ensuring Breeze (API) is installed"
 if [ ! -d "vendor/laravel/breeze" ]; then
-  echo ">> Installing Breeze (API)..."
+  log_warn "Installing Breeze..."
   composer require laravel/breeze --dev --no-interaction
   php artisan breeze:install api --no-interaction || true
   composer install --no-interaction
+  log_ok "Breeze installed"
+else
+  log_ok "Breeze already present"
 fi
+ga_group_close
 
 # --- orchid platform install (only once) -----------------------------------
+ga_group_open "Ensuring Orchid Platform is installed"
 if [ ! -d "vendor/orchid/platform" ]; then
-  echo ">> Installing Orchid Platform..."
+  log_warn "Installing Orchid Platform..."
   composer require orchid/platform --no-interaction
-
   php artisan orchid:install --no-interaction || true
-
   composer install --no-interaction
+  log_ok "Orchid installed"
+else
+  log_ok "Orchid already present"
 fi
+ga_group_close
 
-# --- apply overrides (initial sync + wire custom files) -------------------
+# --- apply overrides (initial sync + wire custom files) ---------------------
 apply_overrides () {
-  echo ">> Applying overrides from /overrides/*..."
+  RESET_COUNTS
+  ga_group_open "Applying overrides from /overrides/*"
 
-  for d in app bootstrap database routes config; do
+  # Include resources explicitly (you requested this)
+  for d in app bootstrap database routes config resources; do
     SRC="/overrides/$d"
-    [ -d "$SRC" ] || continue
+
+    if [ ! -d "$SRC" ]; then
+      COUNT_SKIP=$((COUNT_SKIP + 1))
+      log_skip "Overlay directory missing: $d (expected $SRC)"
+      continue
+    fi
+
+    COUNT_SYNC=$((COUNT_SYNC + 1))
+    log_sync "Overlay directory: $d"
 
     # Special-case: seeders are additive (copy only if missing)
     if [ "$d" = "database" ] && [ -d "$SRC/seeders" ]; then
-      echo ">> Additive: database/seeders"
+      log_add "database/seeders (copy only if missing)"
       mkdir -p "$APP_DIR/database/seeders"
+
       find "$SRC/seeders" -type f | while read -r sf; do
         rels="${sf#$SRC/seeders/}"
         target_seeder="$APP_DIR/database/seeders/$rels"
+
         if [ -f "$target_seeder" ]; then
-          echo ">> Skip seeder (exists): database/seeders/$rels"
+          COUNT_SKIP=$((COUNT_SKIP + 1))
+          log_skip "database/seeders/$rels (exists)"
         else
-          echo ">> Copy seeder: database/seeders/$rels"
+          COUNT_COPY=$((COUNT_COPY + 1))
+          log_copy "database/seeders/$rels"
           mkdir -p "$(dirname "$target_seeder")"
           cp -f "$sf" "$target_seeder"
         fi
       done
     fi
 
-    # Sync override files into the app (overwrite if exists, create if missing)
+    # Sync override files (overwrite if exists, create if missing)
     find "$SRC" -type f ! -name "*_custom.php" | while read -r f; do
       rel="${f#$SRC/}"
       target="$APP_DIR/$d/$rel"
@@ -151,8 +304,16 @@ apply_overrides () {
         continue
       fi
 
-      echo ">> Sync: $d/$rel"
       mkdir -p "$(dirname "$target")"
+
+      if [ -f "$target" ]; then
+        COUNT_OVER=$((COUNT_OVER + 1))
+        log_over "$d/$rel"
+      else
+        COUNT_COPY=$((COUNT_COPY + 1))
+        log_copy "$d/$rel"
+      fi
+
       cp -f "$f" "$target"
     done
 
@@ -161,120 +322,134 @@ apply_overrides () {
       rel="${f#$SRC/}"
       target="$APP_DIR/$d/$rel"
 
-      echo ">> Additive custom: $d/$rel"
+      COUNT_ADD=$((COUNT_ADD + 1))
+      log_add "$d/$rel (_custom)"
       mkdir -p "$(dirname "$target")"
       cp -f "$f" "$target"
 
-      # Determine base file (api_custom.php -> api.php)
       base_rel="$(printf "%s" "$rel" | sed 's/_custom\.php$/.php/')"
       base="$APP_DIR/$d/$base_rel"
 
       if [ -f "$base" ]; then
-        # Valid PHP: require __DIR__.'/api_custom.php';
         require_line="require __DIR__.'/"$(basename "$rel")"';"
 
         if ! grep -Fq "$require_line" "$base"; then
-          echo ">> Wiring $(basename "$rel") into $d/$base_rel"
+          COUNT_WIRE=$((COUNT_WIRE + 1))
+          log_wire "$(basename "$rel") -> $d/$base_rel"
           printf "\n// auto-included from overrides\n%s\n" "$require_line" >> "$base"
+        else
+          COUNT_SKIP=$((COUNT_SKIP + 1))
+          log_skip "Already wired: $(basename "$rel") -> $d/$base_rel"
         fi
       else
-        echo ">> Skip wiring (base missing): $d/$base_rel"
+        COUNT_SKIP=$((COUNT_SKIP + 1))
+        log_skip "Base missing, cannot wire: $d/$base_rel"
       fi
     done
   done
+
+  log_ok "Overrides applied"
+  ga_group_close
+
+  summarize
 }
 
 apply_overrides
 
 # New classes added via overrides need autoload refreshed
-echo ">> composer dump-autoload"
+ga_group_open "Refreshing Composer autoload"
+log_run "composer dump-autoload -o"
 composer dump-autoload -o --no-interaction
+log_ok "Autoload refreshed"
+ga_group_close
 
 # --- key, caches, migrate ---------------------------------------------------
-php artisan key:generate --force || true
-php artisan optimize:clear || true
+ga_group_open "Final Laravel prep"
+php artisan key:generate --force >/dev/null 2>&1 || true
+log_run "php artisan optimize:clear"
+php artisan optimize:clear >/dev/null 2>&1 || true
+log_ok "Caches cleared"
 
-echo ">> Creating storage symlink..."
-php artisan storage:link || true
+log_run "php artisan storage:link"
+php artisan storage:link >/dev/null 2>&1 || true
+log_ok "storage:link done"
 
-echo ">> Running migrations..."
+log_run "php artisan migrate --force"
 php artisan migrate --force || true
+log_ok "Migrations complete (or already up to date)"
+ga_group_close
 
 # --- seeders (only once) ---------------------------------------------------
+ga_group_open "Seeding (first boot only)"
 SEED_ONCE_FILE="$APP_DIR/storage/app/.seeders_ran"
 mkdir -p "$APP_DIR/storage/app" || true
 
 if [ ! -f "$SEED_ONCE_FILE" ]; then
-  echo ">> Running seeders (first boot only)..."
-
-  # IMPORTANT: remove the `|| true` while debugging so you can see real failures.
+  log_run "db:seed OrchidPermissionsSeeder"
   php artisan db:seed --class="Database\\Seeders\\OrchidPermissionsSeeder" --force
+
+  log_run "db:seed DefaultAdminUserSeeder"
   php artisan db:seed --class="Database\\Seeders\\DefaultAdminUserSeeder" --force
+
+  log_run "db:seed SettingsSeeder"
   php artisan db:seed --class="Database\\Seeders\\SettingsSeeder" --force
+
+  log_run "db:seed DefaultBlocksSeeder"
   php artisan db:seed --class="Database\\Seeders\\DefaultBlocksSeeder" --force
 
   touch "$SEED_ONCE_FILE"
-  echo ">> Seeders complete. Marker created: $SEED_ONCE_FILE"
+  log_ok "Seeders complete. Marker created: $SEED_ONCE_FILE"
 else
-  echo ">> Seeders already ran (marker exists): $SEED_ONCE_FILE"
+  log_ok "Seeders already ran (marker exists)"
 fi
+ga_group_close
 
 # --- hot reload file watcher (background, polling-based) -------------------
 start_file_watcher () {
-  echo ">> Starting hot reload file watcher (polling mode)..."
+  ga_group_open "Starting hot reload file watcher (polling mode)"
 
   POLL_INTERVAL="${LARAVEL_WATCH_INTERVAL:-2}"
-  STATE_FILE="/tmp/file_watcher_state"
+  log_ok "Polling every ${POLL_INTERVAL}s"
 
-  # Initialize state file with current timestamps
-  find /overrides -type f 2>/dev/null | while read -r f; do
-    stat -c "%Y %n" "$f" 2>/dev/null || true
-  done > "$STATE_FILE"
-
-  # Run polling loop in background
   (
     while true; do
       sleep "$POLL_INTERVAL"
 
-      # Check each override directory for changes
-      for d in app bootstrap database routes config; do
+      for d in app bootstrap database routes config resources; do
         SRC="/overrides/$d"
         [ -d "$SRC" ] || continue
 
-        # Find all files and check if they're newer than last check
         find "$SRC" -type f 2>/dev/null | while read -r source_file; do
-          # Calculate target path
           rel="${source_file#$SRC/}"
           target="$APP_DIR/$d/$rel"
 
-          # Check if file needs syncing (source newer than target, or target missing)
           if [ ! -f "$target" ] || [ "$source_file" -nt "$target" ]; then
-            echo ">> [Hot reload] Change detected: $d/$rel"
-
+            COUNT_HOT=$((COUNT_HOT + 1))
+            log_hot "Change detected: $d/$rel"
             mkdir -p "$(dirname "$target")"
             cp -f "$source_file" "$target"
-            echo ">> [Hot reload] Synced: $d/$rel"
+            log_hot "Synced: $d/$rel"
 
             # If it's a PHP file in app directory, refresh autoloader
             if echo "$rel" | grep -q '\.php$' && [ "$d" = "app" ]; then
               (cd "$APP_DIR" && composer dump-autoload -o --no-interaction >/dev/null 2>&1) &
-              echo ">> [Hot reload] Refreshing autoloader..."
+              log_hot "Refreshing autoloader"
             fi
 
             # If it's a config file, clear config cache
             if [ "$d" = "config" ]; then
               (cd "$APP_DIR" && php artisan config:clear >/dev/null 2>&1) &
-              echo ">> [Hot reload] Cleared config cache"
+              log_hot "Cleared config cache"
             fi
 
             # If it's a route file, clear route cache
             if [ "$d" = "routes" ]; then
               (cd "$APP_DIR" && php artisan route:clear >/dev/null 2>&1) &
-              echo ">> [Hot reload] Cleared route cache"
+              log_hot "Cleared route cache"
             fi
 
-            # Handle *_custom.php files - ensure they're wired into base files
-            if echo "$rel" | grep -q '_custom\.php$' && { [ "$d" = "routes" ] || [ "$d" = "config" ]; }; then
+            # If it's *_custom.php, ensure it's wired into base files
+            if echo "$rel" | grep -q '_custom\.php$' && { [ "$d" = "routes" ] || [ "$d" = "config" ] || [ "$d" = "app" ]; }; then
               base_rel="$(printf "%s" "$rel" | sed 's/_custom\.php$/.php/')"
               base="$APP_DIR/$d/$base_rel"
               custom_basename="$(basename "$rel")"
@@ -282,7 +457,7 @@ start_file_watcher () {
               if [ -f "$base" ]; then
                 require_line="require __DIR__.'/$custom_basename';"
                 if ! grep -Fq "$require_line" "$base"; then
-                  echo ">> [Hot reload] Wiring $custom_basename into $d/$base_rel"
+                  log_hot "Wiring $custom_basename -> $d/$base_rel"
                   printf "\n// auto-included from overrides\n%s\n" "$require_line" >> "$base"
                 fi
               fi
@@ -294,10 +469,15 @@ start_file_watcher () {
   ) &
 
   WATCHER_PID=$!
-  echo ">> Hot reload file watcher started (PID: $WATCHER_PID, polling every ${POLL_INTERVAL}s)"
+  log_ok "Hot reload watcher started (PID: $WATCHER_PID)"
+  ga_group_close
 }
 
 start_file_watcher
 
-echo ">> Starting Laravel on 0.0.0.0:8000"
+# -----------------------------------------------------------------------------
+# Start server
+# -----------------------------------------------------------------------------
+step "Starting Laravel on 0.0.0.0:8000"
+log_run "php artisan serve --host=0.0.0.0 --port=8000"
 exec php artisan serve --host=0.0.0.0 --port=8000

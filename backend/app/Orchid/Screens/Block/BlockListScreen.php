@@ -82,13 +82,15 @@ class BlockListScreen extends Screen
         $block = Block::findOrFail($request->get('id'));
 
         // Check permissions
-        if (!auth()->user()->hasAccess('platform.blocks.delete')) {
+        if (! auth()->user()->hasAccess('platform.blocks.delete')) {
             Toast::error(__('You do not have permission to delete blocks'));
+
             return;
         }
 
-        if ($block->locked && !auth()->user()->hasAccess('platform.blocks.manage_locked')) {
+        if ($block->locked && ! auth()->user()->hasAccess('platform.blocks.manage_locked')) {
             Toast::error(__('This block is locked and cannot be deleted'));
+
             return;
         }
 

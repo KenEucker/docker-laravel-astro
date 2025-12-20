@@ -21,7 +21,7 @@ class PasswordController extends Controller
         ]);
 
         // Verify current password
-        if (!Hash::check($validated['current_password'], $request->user()->password)) {
+        if (! Hash::check($validated['current_password'], $request->user()->password)) {
             throw ValidationException::withMessages([
                 'current_password' => ['The provided password does not match your current password.'],
             ]);

@@ -1,10 +1,10 @@
-import { defineConfig } from "astro/config";
-import vue from '@astrojs/vue';
-import tailwindcss from "@tailwindcss/vite";
-import { fileURLToPath } from 'url';
+import { defineConfig } from 'astro/config'
+import vue from '@astrojs/vue'
+import tailwindcss from '@tailwindcss/vite'
+import { fileURLToPath } from 'url'
 
 export default defineConfig({
-  output: "server",
+  output: 'server',
   server: {
     host: true,
     port: 3000,
@@ -18,7 +18,7 @@ export default defineConfig({
       },
     },
     server: {
-      allowedHosts: ["intranet.local.test", "admin.local.test"],
+      allowedHosts: ['intranet.local.test', 'admin.local.test'],
     },
   },
-});
+})

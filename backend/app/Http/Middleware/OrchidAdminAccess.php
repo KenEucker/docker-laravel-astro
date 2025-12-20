@@ -20,7 +20,7 @@ class OrchidAdminAccess
         // Treat API routes as JSON even if Accept header is missing
         $wantsJson = $request->expectsJson() || $request->is('api/*');
 
-        if (!$user) {
+        if (! $user) {
             if ($wantsJson) {
                 return response()->json(['message' => 'Unauthenticated'], 401);
             }
@@ -33,7 +33,7 @@ class OrchidAdminAccess
             $permissions = ['app.admin'];
         }
 
-        if (!method_exists($user, 'hasAccess')) {
+        if (! method_exists($user, 'hasAccess')) {
             if ($wantsJson) {
                 return response()->json(['message' => 'Forbidden'], 403);
             }

@@ -5,8 +5,8 @@
  * A client-side component for managing user notes.
  */
 
-import { ref, onMounted, watch } from 'vue';
-import type { Note } from '../lib/notes/api';
+import { ref, onMounted, watch } from 'vue'
+import type { Note } from '../lib/notes/api'
 import {
   fetchNotes,
   createNote,
@@ -14,91 +14,90 @@ import {
   archiveNote,
   unarchiveNote,
   deleteNote,
-} from '../lib/notes/api';
+} from '../lib/notes/api'
 
-const notes = ref<Note[]>([]);
-const loading = ref(true);
-const showArchived = ref(false);
-const editingNote = ref<Note | null>(null);
-const newNote = ref({ title: '', body: '' });
-const showNewNoteForm = ref(false);
+const notes = ref<Note[]>([])
+const loading = ref(true)
+const showArchived = ref(false)
+const editingNote = ref<Note | null>(null)
+const newNote = ref({ title: '', body: '' })
+const showNewNoteForm = ref(false)
 
 const loadNotes = async () => {
-  loading.value = true;
-  const data = await fetchNotes(showArchived.value ? 'archived' : 'active');
-  notes.value = data;
-  loading.value = false;
-};
+  loading.value = true
+  const data = await fetchNotes(showArchived.value ? 'archived' : 'active')
+  notes.value = data
+  loading.value = false
+}
 
 const handleCreateNote = async () => {
-  if (!newNote.value.title.trim() || !newNote.value.body.trim()) return;
+  if (!newNote.value.title.trim() || !newNote.value.body.trim()) return
 
-  const created = await createNote(newNote.value.title, newNote.value.body);
+  const created = await createNote(newNote.value.title, newNote.value.body)
   if (created) {
-    notes.value = [created, ...notes.value];
-    newNote.value = { title: '', body: '' };
-    showNewNoteForm.value = false;
+    notes.value = [created, ...notes.value]
+    newNote.value = { title: '', body: '' }
+    showNewNoteForm.value = false
   }
-};
+}
 
 const handleUpdateNote = async () => {
-  if (!editingNote.value) return;
+  if (!editingNote.value) return
 
   const updated = await updateNote(editingNote.value.id, {
     title: editingNote.value.title,
     body: editingNote.value.body,
-  });
+  })
 
   if (updated) {
-    notes.value = notes.value.map((n) => (n.id === updated.id ? updated : n));
-    editingNote.value = null;
+    notes.value = notes.value.map((n) => (n.id === updated.id ? updated : n))
+    editingNote.value = null
   }
-};
+}
 
 const handleArchive = async (id: number) => {
-  const success = await archiveNote(id);
+  const success = await archiveNote(id)
   if (success) {
-    notes.value = notes.value.filter((n) => n.id !== id);
+    notes.value = notes.value.filter((n) => n.id !== id)
   }
-};
+}
 
 const handleUnarchive = async (id: number) => {
-  const success = await unarchiveNote(id);
+  const success = await unarchiveNote(id)
   if (success) {
-    notes.value = notes.value.filter((n) => n.id !== id);
+    notes.value = notes.value.filter((n) => n.id !== id)
   }
-};
+}
 
 const handleDelete = async (id: number) => {
-  if (!confirm('Are you sure you want to permanently delete this note?')) return;
+  if (!confirm('Are you sure you want to permanently delete this note?')) return
 
-  const success = await deleteNote(id);
+  const success = await deleteNote(id)
   if (success) {
-    notes.value = notes.value.filter((n) => n.id !== id);
+    notes.value = notes.value.filter((n) => n.id !== id)
   }
-};
+}
 
 const startEdit = (note: Note) => {
-  editingNote.value = { ...note };
-};
+  editingNote.value = { ...note }
+}
 
 const cancelEdit = () => {
-  editingNote.value = null;
-};
+  editingNote.value = null
+}
 
 const cancelNewNote = () => {
-  showNewNoteForm.value = false;
-  newNote.value = { title: '', body: '' };
-};
+  showNewNoteForm.value = false
+  newNote.value = { title: '', body: '' }
+}
 
 onMounted(() => {
-  loadNotes();
-});
+  loadNotes()
+})
 
 watch(showArchived, () => {
-  loadNotes();
-});
-
+  loadNotes()
+})
 </script>
 
 <template>

@@ -22,7 +22,13 @@
     "dev:localhost": "npm run dc:down && npm run dc:up",
     "dev:proxy": "npm run dc:down-proxy && docker compose --profile proxy up --build",
     "env:localhost": "node -e \"const fs=require('fs');const path='.env';if(!fs.existsSync(path))throw new Error('No .env file found');const keys=['APP_URL','PUBLIC_API_URL','FRONTEND_URL','PUBLIC_SITE_URL','ADMIN_HOSTNAME','INTRANET_HOSTNAME','SANCTUM_STATEFUL_DOMAINS','SESSION_DOMAIN','SESSION_DRIVER'];const lines=fs.readFileSync(path,'utf8').split(/\\r?\\n/);const out=lines.map(l=>{const m=l.match(/^([^#=]+)=/);if(!m)return l;const k=m[1];if(keys.includes(k))return '# '+l.replace(/^#+\\s*/,'');return l;});fs.writeFileSync(path,out.join('\\n'));console.log('✔ env:localhost → commented proxy/domain-related keys');\"",
-    "env:proxy": "node -e \"const fs=require('fs');const path='.env';if(!fs.existsSync(path))throw new Error('No .env file found');const required={SANCTUM_STATEFUL_DOMAINS:'intranet.local.test,admin.local.test',SESSION_DOMAIN:'local.test',SESSION_DRIVER:'file'};let lines=fs.readFileSync(path,'utf8').split(/\\r?\\n/);const seen=new Set();lines=lines.map(l=>{const raw=l.replace(/^#+\\s*/,'');const m=raw.match(/^([^=]+)=(.*)$/);if(!m)return l;const k=m[1];if(required[k]){seen.add(k);return `${k}=${required[k]}`;}return raw;});for(const [k,v] of Object.entries(required)){if(!seen.has(k))lines.push(`${k}=${v}`);}fs.writeFileSync(path,lines.join('\\n'));console.log('✔ env:proxy → enabled proxy/domain settings');\""
+    "env:proxy": "node -e \"const fs=require('fs');const path='.env';if(!fs.existsSync(path))throw new Error('No .env file found');const required={SANCTUM_STATEFUL_DOMAINS:'intranet.local.test,admin.local.test',SESSION_DOMAIN:'local.test',SESSION_DRIVER:'file'};let lines=fs.readFileSync(path,'utf8').split(/\\r?\\n/);const seen=new Set();lines=lines.map(l=>{const raw=l.replace(/^#+\\s*/,'');const m=raw.match(/^([^=]+)=(.*)$/);if(!m)return l;const k=m[1];if(required[k]){seen.add(k);return `${k}=${required[k]}`;}return raw;});for(const [k,v] of Object.entries(required)){if(!seen.has(k))lines.push(`${k}=${v}`);}fs.writeFileSync(path,lines.join('\\n'));console.log('✔ env:proxy → enabled proxy/domain settings');\"",
+    "frontend:check": "docker compose run --rm frontend-check sh -lc \"npm run check\"",
+    "frontend:format": "docker compose run --rm frontend-check sh -lc \"npm run format\"",
+    "backend:format": "docker compose --profile check run --rm backend-check sh -lc \"pint\"",
+    "backend:format:test": "docker compose --profile check run --rm backend-check sh -lc \"pint --test\"",
+    "backend:stan": "docker compose --profile check run --rm backend-check sh -lc \"composer install --no-interaction --prefer-dist && ./vendor/bin/phpstan analyse\"",
+    "backend:check": "npm run backend:format:test && npm run backend:stan"
   },
   "keywords": [
     "typescript",

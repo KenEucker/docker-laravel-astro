@@ -43,6 +43,7 @@ class BlockTypeRegistry
     public static function isRestricted(string $type): bool
     {
         $definition = self::get($type);
+
         return $definition['restricted'] ?? false;
     }
 
@@ -52,6 +53,7 @@ class BlockTypeRegistry
     public static function getValidationRules(string $type): array
     {
         $definition = self::get($type);
+
         return $definition['validation_rules'] ?? [];
     }
 
@@ -62,7 +64,7 @@ class BlockTypeRegistry
      */
     public static function validateData(string $type, array $data): array
     {
-        if (!self::exists($type)) {
+        if (! self::exists($type)) {
             throw ValidationException::withMessages([
                 'type' => ["Unknown block type: {$type}"],
             ]);
@@ -99,7 +101,7 @@ class BlockTypeRegistry
     public static function getNonRestrictedTypes(): array
     {
         return array_filter(self::all(), function ($definition) {
-            return !($definition['restricted'] ?? false);
+            return ! ($definition['restricted'] ?? false);
         });
     }
 
@@ -127,7 +129,7 @@ class BlockTypeRegistry
             }
 
             // If label is still not scalar, fall back to the key
-            if (!is_scalar($label)) {
+            if (! is_scalar($label)) {
                 $label = $key;
             }
 
@@ -142,7 +144,6 @@ class BlockTypeRegistry
 
         return $options;
     }
-
 
     /**
      * Sanitize block data based on type.

@@ -38,7 +38,7 @@ class BlockPolicy
      */
     public function createType(User $user, string $type): bool
     {
-        if (!$user->hasAccess('platform.blocks.create')) {
+        if (! $user->hasAccess('platform.blocks.create')) {
             return false;
         }
 
@@ -55,12 +55,12 @@ class BlockPolicy
      */
     public function update(User $user, Block $block): bool
     {
-        if (!$user->hasAccess('platform.blocks.edit')) {
+        if (! $user->hasAccess('platform.blocks.edit')) {
             return false;
         }
 
         // Check if block is locked
-        if ($block->locked && !$user->hasAccess('platform.blocks.manage_locked')) {
+        if ($block->locked && ! $user->hasAccess('platform.blocks.manage_locked')) {
             return false;
         }
 
@@ -73,7 +73,7 @@ class BlockPolicy
      */
     public function changeType(User $user, Block $block, string $newType): bool
     {
-        if (!$this->update($user, $block)) {
+        if (! $this->update($user, $block)) {
             return false;
         }
 
@@ -90,12 +90,12 @@ class BlockPolicy
      */
     public function publish(User $user, Block $block): bool
     {
-        if (!$user->hasAccess('platform.blocks.publish')) {
+        if (! $user->hasAccess('platform.blocks.publish')) {
             return false;
         }
 
         // Check if block is locked
-        if ($block->locked && !$user->hasAccess('platform.blocks.manage_locked')) {
+        if ($block->locked && ! $user->hasAccess('platform.blocks.manage_locked')) {
             return false;
         }
 
@@ -123,12 +123,12 @@ class BlockPolicy
      */
     public function delete(User $user, Block $block): bool
     {
-        if (!$user->hasAccess('platform.blocks.delete')) {
+        if (! $user->hasAccess('platform.blocks.delete')) {
             return false;
         }
 
         // Check if block is locked
-        if ($block->locked && !$user->hasAccess('platform.blocks.manage_locked')) {
+        if ($block->locked && ! $user->hasAccess('platform.blocks.manage_locked')) {
             return false;
         }
 

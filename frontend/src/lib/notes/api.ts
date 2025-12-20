@@ -3,20 +3,20 @@
  *
  * Provides functions to manage user notes.
  */
-import { getCookie, ensureCsrfCookie } from '../auth';
-const API_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:8000';
+import { getCookie, ensureCsrfCookie } from '../auth'
+const API_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:8000'
 
 export interface Note {
-  id: number;
-  title: string;
-  body: string;
-  status: 'active' | 'archived';
-  created_at: string;
-  updated_at: string;
+  id: number
+  title: string
+  body: string
+  status: 'active' | 'archived'
+  created_at: string
+  updated_at: string
 }
 
 export interface NotesResponse {
-  notes: Note[];
+  notes: Note[]
 }
 
 /**
@@ -24,23 +24,23 @@ export interface NotesResponse {
  */
 export async function fetchNotes(status?: 'active' | 'archived'): Promise<Note[]> {
   try {
-    const params = new URLSearchParams();
-    if (status) params.set('status', status);
+    const params = new URLSearchParams()
+    if (status) params.set('status', status)
 
-    const url = `${API_URL}/api/me/notes?${params}`;
+    const url = `${API_URL}/api/me/notes?${params}`
     const response = await fetch(url, {
       credentials: 'include', // Include cookies for Sanctum auth
-    });
+    })
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch notes: ${response.statusText}`);
+      throw new Error(`Failed to fetch notes: ${response.statusText}`)
     }
 
-    const data: NotesResponse = await response.json();
-    return data.notes;
+    const data: NotesResponse = await response.json()
+    return data.notes
   } catch (error) {
-    console.error('Error fetching notes:', error);
-    return [];
+    console.error('Error fetching notes:', error)
+    return []
   }
 }
 
@@ -58,16 +58,16 @@ export async function createNote(title: string, body: string): Promise<Note | nu
       },
       credentials: 'include',
       body: JSON.stringify({ title, body }),
-    });
+    })
 
     if (!response.ok) {
-      throw new Error(`Failed to create note: ${response.statusText}`);
+      throw new Error(`Failed to create note: ${response.statusText}`)
     }
 
-    return await response.json();
+    return await response.json()
   } catch (error) {
-    console.error('Error creating note:', error);
-    return null;
+    console.error('Error creating note:', error)
+    return null
   }
 }
 
@@ -76,7 +76,7 @@ export async function createNote(title: string, body: string): Promise<Note | nu
  */
 export async function updateNote(
   id: number,
-  updates: { title?: string; body?: string }
+  updates: { title?: string; body?: string },
 ): Promise<Note | null> {
   try {
     await ensureCsrfCookie()
@@ -88,16 +88,16 @@ export async function updateNote(
       },
       credentials: 'include',
       body: JSON.stringify(updates),
-    });
+    })
 
     if (!response.ok) {
-      throw new Error(`Failed to update note: ${response.statusText}`);
+      throw new Error(`Failed to update note: ${response.statusText}`)
     }
 
-    return await response.json();
+    return await response.json()
   } catch (error) {
-    console.error('Error updating note:', error);
-    return null;
+    console.error('Error updating note:', error)
+    return null
   }
 }
 
@@ -113,12 +113,12 @@ export async function archiveNote(id: number): Promise<boolean> {
       headers: {
         'x-xsrf-token': getCookie('XSRF-TOKEN'),
       },
-    });
+    })
 
-    return response.ok;
+    return response.ok
   } catch (error) {
-    console.error('Error archiving note:', error);
-    return false;
+    console.error('Error archiving note:', error)
+    return false
   }
 }
 
@@ -134,12 +134,12 @@ export async function unarchiveNote(id: number): Promise<boolean> {
       headers: {
         'x-xsrf-token': getCookie('XSRF-TOKEN'),
       },
-    });
+    })
 
-    return response.ok;
+    return response.ok
   } catch (error) {
-    console.error('Error unarchiving note:', error);
-    return false;
+    console.error('Error unarchiving note:', error)
+    return false
   }
 }
 
@@ -155,11 +155,11 @@ export async function deleteNote(id: number): Promise<boolean> {
       headers: {
         'x-xsrf-token': getCookie('XSRF-TOKEN'),
       },
-    });
+    })
 
-    return response.ok;
+    return response.ok
   } catch (error) {
-    console.error('Error deleting note:', error);
-    return false;
+    console.error('Error deleting note:', error)
+    return false
   }
 }

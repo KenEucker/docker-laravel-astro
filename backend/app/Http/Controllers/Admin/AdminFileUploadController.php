@@ -20,7 +20,7 @@ class AdminFileUploadController extends Controller
     {
         // Check if user has platform access
         $user = $request->user();
-        if (!$user || !$user->hasAccess('platform.users.edit')) {
+        if (! $user || ! $user->hasAccess('platform.users.edit')) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -34,7 +34,7 @@ class AdminFileUploadController extends Controller
         // Store in a generic avatars folder
         // The file will be moved to user-specific folder when the form is saved
         $dir = 'avatars/temp';
-        $filename = Str::uuid()->toString() . '.' . $ext;
+        $filename = Str::uuid()->toString().'.'.$ext;
         $path = $file->storeAs($dir, $filename, 'public');
 
         // Return response in the format Orchid expects

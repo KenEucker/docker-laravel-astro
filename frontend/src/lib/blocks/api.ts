@@ -4,23 +4,23 @@
  * Provides functions to fetch content blocks from the backend API.
  */
 
-const API_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:8000';
+const API_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:8000'
 
 export interface BlockData {
-  key: string;
-  type: string;
-  data: any;
-  updated_at: string;
-  status?: string;
-  published_at?: string | null;
+  key: string
+  type: string
+  data: any
+  updated_at: string
+  status?: string
+  published_at?: string | null
 }
 
 export interface BlocksListResponse {
   blocks: Array<{
-    key: string;
-    type: string;
-    updated_at: string;
-  }>;
+    key: string
+    type: string
+    updated_at: string
+  }>
 }
 
 /**
@@ -32,20 +32,20 @@ export interface BlocksListResponse {
  */
 export async function fetchBlock(key: string, preview = false): Promise<BlockData | null> {
   try {
-    const url = `${API_URL}/api/content/blocks/${key}${preview ? '?preview=1' : ''}`;
-    const response = await fetch(url);
+    const url = `${API_URL}/api/content/blocks/${key}${preview ? '?preview=1' : ''}`
+    const response = await fetch(url)
 
     if (!response.ok) {
       if (response.status === 404) {
-        return null;
+        return null
       }
-      throw new Error(`Failed to fetch block: ${response.statusText}`);
+      throw new Error(`Failed to fetch block: ${response.statusText}`)
     }
 
-    return await response.json();
+    return await response.json()
   } catch (error) {
-    console.error(`Error fetching block "${key}":`, error);
-    return null;
+    console.error(`Error fetching block "${key}":`, error)
+    return null
   }
 }
 
@@ -58,20 +58,20 @@ export async function fetchBlock(key: string, preview = false): Promise<BlockDat
  */
 export async function fetchBlocks(prefix?: string, limit = 50): Promise<BlocksListResponse> {
   try {
-    const params = new URLSearchParams();
-    if (prefix) params.set('prefix', prefix);
-    params.set('limit', limit.toString());
+    const params = new URLSearchParams()
+    if (prefix) params.set('prefix', prefix)
+    params.set('limit', limit.toString())
 
-    const url = `${API_URL}/api/content/blocks?${params}`;
-    const response = await fetch(url);
+    const url = `${API_URL}/api/content/blocks?${params}`
+    const response = await fetch(url)
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch blocks: ${response.statusText}`);
+      throw new Error(`Failed to fetch blocks: ${response.statusText}`)
     }
 
-    return await response.json();
+    return await response.json()
   } catch (error) {
-    console.error('Error fetching blocks:', error);
-    return { blocks: [] };
+    console.error('Error fetching blocks:', error)
+    return { blocks: [] }
   }
 }

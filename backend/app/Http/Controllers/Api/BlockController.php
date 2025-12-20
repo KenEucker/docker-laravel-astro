@@ -27,12 +27,12 @@ class BlockController extends Controller
 
         // If preview is requested, validate the signature
         if ($preview) {
-            if (!config('blocks.preview.enabled')) {
+            if (! config('blocks.preview.enabled')) {
                 return response()->json(['message' => 'Preview not available'], 403);
             }
 
             // Validate signed URL
-            if (!$request->hasValidSignature()) {
+            if (! $request->hasValidSignature()) {
                 return response()->json(['message' => 'Invalid or expired preview link'], 403);
             }
 
@@ -51,12 +51,12 @@ class BlockController extends Controller
             }
         }
 
-        if (!$block) {
+        if (! $block) {
             return response()->json(['message' => 'Block not found'], 404);
         }
 
         // Check visibility restrictions for non-preview requests
-        if (!$preview && !$this->canAccessBlock($request, $block)) {
+        if (! $preview && ! $this->canAccessBlock($request, $block)) {
             return response()->json(['message' => 'Block not found'], 404);
         }
 
@@ -99,7 +99,7 @@ class BlockController extends Controller
         $blocks = $query->limit($limit)->get(['key', 'type', 'updated_at']);
 
         return response()->json([
-            'blocks' => $blocks->map(fn($block) => [
+            'blocks' => $blocks->map(fn ($block) => [
                 'key' => $block->key,
                 'type' => $block->type,
                 'updated_at' => $block->updated_at->toIso8601String(),
@@ -112,17 +112,17 @@ class BlockController extends Controller
      */
     public function preview(Request $request, string $key): JsonResponse
     {
-        if (!$request->user()) {
+        if (! $request->user()) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
-        if (!config('blocks.preview.enabled')) {
+        if (! config('blocks.preview.enabled')) {
             return response()->json(['message' => 'Preview not available'], 403);
         }
 
         $block = Block::where('key', $key)->first();
 
-        if (!$block) {
+        if (! $block) {
             return response()->json(['message' => 'Block not found'], 404);
         }
 
@@ -161,7 +161,7 @@ class BlockController extends Controller
             $role = substr($block->visibility, 5);
             $user = $request->user();
 
-            if (!$user) {
+            if (! $user) {
                 return false;
             }
 

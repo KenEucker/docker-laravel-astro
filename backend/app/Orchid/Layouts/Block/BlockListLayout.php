@@ -56,7 +56,8 @@ class BlockListLayout extends Table
                 ])->empty('All Statuses'))
                 ->render(function (Block $block) {
                     $color = $block->status === 'published' ? 'success' : 'secondary';
-                    return "<span class=\"badge bg-{$color}\">" . ucfirst($block->status) . "</span>";
+
+                    return "<span class=\"badge bg-{$color}\">".ucfirst($block->status).'</span>';
                 }),
 
             TD::make('visibility', 'Visibility')
@@ -88,7 +89,7 @@ class BlockListLayout extends Table
                             ->parameters(['id' => $block->id])
                             ->canSee(
                                 auth()->user()->hasAccess('platform.blocks.delete') &&
-                                (!$block->locked || auth()->user()->hasAccess('platform.blocks.manage_locked'))
+                                (! $block->locked || auth()->user()->hasAccess('platform.blocks.manage_locked'))
                             ),
                     ])),
         ];

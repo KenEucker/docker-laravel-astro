@@ -15,7 +15,7 @@ class SettingsSeeder extends Seeder
         $settings = [
             [
                 'key' => 'APP_NAME',
-                'value' => getenv("APP_NAME") ?: "LorAstro",
+                'value' => getenv('APP_NAME') ?: 'LorAstro',
                 'type' => 'string',
                 'description' => 'The name of the application displayed to users',
                 'is_public' => true,

@@ -12,7 +12,7 @@ use Orchid\Screen\AsSource;
 
 class User extends OrchidUser
 {
-    use HasApiTokens, HasFactory, Notifiable, AsSource;
+    use AsSource, HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
         'name',

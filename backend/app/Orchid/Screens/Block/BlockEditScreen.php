@@ -77,7 +77,7 @@ class BlockEditScreen extends Screen
                 ->icon('bs.check-circle')
                 ->method('saveDraft')
                 ->canSee(
-                    (!$this->block->locked || auth()->user()->hasAccess('platform.blocks.manage_locked'))
+                    (! $this->block->locked || auth()->user()->hasAccess('platform.blocks.manage_locked'))
                 ),
 
             Button::make(__('Publish'))
@@ -85,7 +85,7 @@ class BlockEditScreen extends Screen
                 ->method('publish')
                 ->canSee(
                     auth()->user()->hasAccess('platform.blocks.publish') &&
-                    (!$this->block->locked || auth()->user()->hasAccess('platform.blocks.manage_locked'))
+                    (! $this->block->locked || auth()->user()->hasAccess('platform.blocks.manage_locked'))
                 ),
 
             Button::make(__('Unpublish'))
@@ -95,7 +95,7 @@ class BlockEditScreen extends Screen
                     $this->block->exists &&
                     $this->block->status === 'published' &&
                     auth()->user()->hasAccess('platform.blocks.publish') &&
-                    (!$this->block->locked || auth()->user()->hasAccess('platform.blocks.manage_locked'))
+                    (! $this->block->locked || auth()->user()->hasAccess('platform.blocks.manage_locked'))
                 ),
 
             Button::make(__('Delete'))
@@ -105,7 +105,7 @@ class BlockEditScreen extends Screen
                 ->canSee(
                     $this->block->exists &&
                     auth()->user()->hasAccess('platform.blocks.delete') &&
-                    (!$this->block->locked || auth()->user()->hasAccess('platform.blocks.manage_locked'))
+                    (! $this->block->locked || auth()->user()->hasAccess('platform.blocks.manage_locked'))
                 ),
         ];
     }
@@ -121,7 +121,7 @@ class BlockEditScreen extends Screen
         $blockTypes = BlockTypeRegistry::getTypesForSelect();
 
         // Filter out HTML type if user doesn't have permission
-        if (!$user->hasAccess('platform.blocks.manage_html')) {
+        if (! $user->hasAccess('platform.blocks.manage_html')) {
             unset($blockTypes['html']);
         }
 
@@ -174,7 +174,7 @@ class BlockEditScreen extends Screen
     {
         $type = $this->block->type ?? request()->input('block.type');
 
-        if (!$type) {
+        if (! $type) {
             return [
                 Label::make('block._notice')
                     ->title('Next step')
@@ -182,7 +182,7 @@ class BlockEditScreen extends Screen
             ];
         }
 
-        return match($type) {
+        return match ($type) {
             'hero' => $this->getHeroFields(),
             'richText' => $this->getRichTextField(),
             'image' => $this->getImageFields(),
@@ -337,8 +337,9 @@ class BlockEditScreen extends Screen
      */
     public function publish(Request $request, Block $block): void
     {
-        if (!auth()->user()->hasAccess('platform.blocks.publish')) {
+        if (! auth()->user()->hasAccess('platform.blocks.publish')) {
             Toast::error(__('You do not have permission to publish blocks'));
+
             return;
         }
 
@@ -350,8 +351,9 @@ class BlockEditScreen extends Screen
      */
     public function unpublish(Request $request, Block $block): void
     {
-        if (!$block->exists || !auth()->user()->hasAccess('platform.blocks.publish')) {
+        if (! $block->exists || ! auth()->user()->hasAccess('platform.blocks.publish')) {
             Toast::error(__('You do not have permission to unpublish blocks'));
+
             return;
         }
 
@@ -368,22 +370,25 @@ class BlockEditScreen extends Screen
     protected function saveBlock(Request $request, Block $block, string $status): void
     {
         // Check locked status
-        if ($block->locked && !auth()->user()->hasAccess('platform.blocks.manage_locked')) {
+        if ($block->locked && ! auth()->user()->hasAccess('platform.blocks.manage_locked')) {
             Toast::error(__('This block is locked and cannot be edited'));
+
             return;
         }
 
         $type = $request->input('block.type');
 
         // Validate type exists
-        if (!BlockTypeRegistry::exists($type)) {
+        if (! BlockTypeRegistry::exists($type)) {
             Toast::error(__('Invalid block type'));
+
             return;
         }
 
         // Check HTML permission
-        if ($type === 'html' && !auth()->user()->hasAccess('platform.blocks.manage_html')) {
+        if ($type === 'html' && ! auth()->user()->hasAccess('platform.blocks.manage_html')) {
             Toast::error(__('You do not have permission to manage HTML blocks'));
+
             return;
         }
 
@@ -411,6 +416,7 @@ class BlockEditScreen extends Screen
                     Toast::error($error);
                 }
             }
+
             return;
         }
 
@@ -431,7 +437,7 @@ class BlockEditScreen extends Screen
         }
 
         // Set audit fields
-        if (!$block->exists) {
+        if (! $block->exists) {
             $block->created_by = auth()->id();
         }
         $block->updated_by = auth()->id();
@@ -449,13 +455,15 @@ class BlockEditScreen extends Screen
      */
     public function remove(Block $block): void
     {
-        if (!auth()->user()->hasAccess('platform.blocks.delete')) {
+        if (! auth()->user()->hasAccess('platform.blocks.delete')) {
             Toast::error(__('You do not have permission to delete blocks'));
+
             return;
         }
 
-        if ($block->locked && !auth()->user()->hasAccess('platform.blocks.manage_locked')) {
+        if ($block->locked && ! auth()->user()->hasAccess('platform.blocks.manage_locked')) {
             Toast::error(__('This block is locked and cannot be deleted'));
+
             return;
         }
 

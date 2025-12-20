@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-use App\Orchid\Screens\DashboardScreen;
-use App\Orchid\Screens\User\UserEditScreen;
-use App\Orchid\Screens\User\UserListScreen;
-use App\Orchid\Screens\Setting\SettingEditScreen;
-use App\Orchid\Screens\Setting\SettingListScreen;
-use App\Orchid\Screens\Block\BlockEditScreen;
-use App\Orchid\Screens\Block\BlockListScreen;
 use App\Http\Controllers\Admin\AdminAvatarController;
 use App\Http\Controllers\Admin\AdminFileUploadController;
+use App\Orchid\Screens\Block\BlockEditScreen;
+use App\Orchid\Screens\Block\BlockListScreen;
+use App\Orchid\Screens\DashboardScreen;
+use App\Orchid\Screens\Setting\SettingEditScreen;
+use App\Orchid\Screens\Setting\SettingListScreen;
+use App\Orchid\Screens\User\UserEditScreen;
+use App\Orchid\Screens\User\UserListScreen;
 use Illuminate\Support\Facades\Route;
 use Tabuna\Breadcrumbs\Trail;
 

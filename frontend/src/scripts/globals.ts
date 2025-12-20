@@ -1,4 +1,4 @@
-import { ensureCsrfCookie } from "../lib/auth"
+import { ensureCsrfCookie } from '../lib/auth'
 
 declare global {
   interface Window {

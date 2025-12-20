@@ -1,0 +1,21 @@
+# backend/Dockerfile.check
+FROM php:8.3-cli
+
+WORKDIR /app
+
+# System deps commonly needed by composer + typical PHP packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git unzip libzip-dev \
+  && docker-php-ext-install zip \
+  && rm -rf /var/lib/apt/lists/*
+
+# Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Pint (phar) - no need for project composer.json
+# Pin version to avoid surprises
+ADD https://github.com/laravel/pint/releases/download/v1.17.0/pint.phar /usr/local/bin/pint
+RUN chmod +x /usr/local/bin/pint
+
+# Default command is a no-op; compose will run explicit commands
+CMD ["sh", "-lc", "php -v && composer -V && pint --version"]

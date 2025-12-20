@@ -21,7 +21,8 @@ class DashboardScreen extends Screen
     public function description(): ?string
     {
         $name = auth()->user()?->name ?? 'User';
-        return 'Welcome to the admin panel, ' . $name;
+
+        return 'Welcome to the admin panel, '.$name;
     }
 
     public function query(): iterable
@@ -81,12 +82,12 @@ class DashboardScreen extends Screen
             Layout::metrics([
                 'Total Users' => 'metrics.users',
                 'Admin Users' => 'metrics.admins',
-                'Settings'    => 'metrics.settings',
+                'Settings' => 'metrics.settings',
             ]),
         ];
 
         // Show recent user legend if the query provided data
-        if (!empty($this->query['recent_user'] ?? null)) {
+        if (! empty($this->query['recent_user'] ?? null)) {
             $layouts[] = Layout::legend('recent_user', [
                 Sight::make('name', __('Latest Registered User')),
                 Sight::make('email', __('Email')),

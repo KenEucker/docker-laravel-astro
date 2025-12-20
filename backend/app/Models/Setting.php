@@ -26,8 +26,8 @@ class Setting extends Model
     /**
      * Get a setting value with fallback to environment variable.
      *
-     * @param string $key The setting key
-     * @param mixed $default Default value if neither database nor env has the setting
+     * @param  string  $key  The setting key
+     * @param  mixed  $default  Default value if neither database nor env has the setting
      * @return mixed
      */
     public static function get(string $key, $default = null)
@@ -54,11 +54,7 @@ class Setting extends Model
     /**
      * Set a setting value.
      *
-     * @param string $key
-     * @param mixed $value
-     * @param string $type
-     * @param string|null $description
-     * @param bool $isPublic
+     * @param  mixed  $value
      * @return static
      */
     public static function set(string $key, $value, string $type = 'string', ?string $description = null, bool $isPublic = false)
@@ -83,9 +79,6 @@ class Setting extends Model
 
     /**
      * Check if a setting exists in the database.
-     *
-     * @param string $key
-     * @return bool
      */
     public static function has(string $key): bool
     {
@@ -94,21 +87,18 @@ class Setting extends Model
 
     /**
      * Delete a setting.
-     *
-     * @param string $key
-     * @return bool
      */
     public static function forget(string $key): bool
     {
         Cache::forget("setting.{$key}");
+
         return static::where('key', $key)->delete() > 0;
     }
 
     /**
      * Get all settings as an associative array.
      *
-     * @param bool $publicOnly Only return public settings
-     * @return array
+     * @param  bool  $publicOnly  Only return public settings
      */
     public static function all($publicOnly = false): array
     {
@@ -126,8 +116,7 @@ class Setting extends Model
     /**
      * Cast a string value to the appropriate type.
      *
-     * @param string|null $value
-     * @param string $type
+     * @param  string|null  $value
      * @return mixed
      */
     protected static function castValue($value, string $type)
@@ -149,9 +138,7 @@ class Setting extends Model
     /**
      * Convert a value to a string for storage.
      *
-     * @param mixed $value
-     * @param string $type
-     * @return string|null
+     * @param  mixed  $value
      */
     protected static function valueToString($value, string $type): ?string
     {

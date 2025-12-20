@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use App\Models\User;
 use Orchid\Platform\Models\Role;
 
 class DefaultAdminUserSeeder extends Seeder
@@ -17,13 +17,14 @@ class DefaultAdminUserSeeder extends Seeder
 
         if (! $email || ! $password) {
             $this->command?->warn('DEFAULT_USER_EMAIL / DEFAULT_USER_PASSWORD missing; skipping DefaultAdminUserSeeder.');
+
             return;
         }
 
         $user = User::updateOrCreate(
             ['email' => $email],
             [
-                'name'     => $name,
+                'name' => $name,
                 'password' => Hash::make($password),
             ]
         );

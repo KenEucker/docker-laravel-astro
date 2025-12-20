@@ -1,0 +1,16 @@
+# frontend/Dockerfile.check
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy dependency manifests first for better caching
+COPY package.json package-lock.json* ./
+
+# Install ALL deps (including devDeps)
+RUN npm i
+
+# Copy the rest of the frontend code
+COPY . .
+
+# Default command (can be overridden by docker compose run)
+CMD ["sh", "-lc", "npm run check"]

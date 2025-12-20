@@ -16,7 +16,7 @@ class AdminAvatarController extends Controller
     public function store(Request $request, User $user)
     {
         // Check if user has permission to edit users
-        if (!$request->user()->hasAccess('platform.users.edit')) {
+        if (! $request->user()->hasAccess('platform.users.edit')) {
             abort(403, 'Unauthorized');
         }
 
@@ -28,10 +28,10 @@ class AdminAvatarController extends Controller
         $ext = $file->getClientOriginalExtension();
 
         // Keep a tidy per-user folder, same as frontend
-        $dir = 'avatars/' . $user->id;
+        $dir = 'avatars/'.$user->id;
 
         // Use a uuid filename to avoid collisions
-        $filename = Str::uuid()->toString() . '.' . $ext;
+        $filename = Str::uuid()->toString().'.'.$ext;
 
         // Delete old avatar if exists
         if ($user->avatar_path) {
@@ -58,7 +58,7 @@ class AdminAvatarController extends Controller
     public function destroy(Request $request, User $user)
     {
         // Check if user has permission to edit users
-        if (!$request->user()->hasAccess('platform.users.edit')) {
+        if (! $request->user()->hasAccess('platform.users.edit')) {
             abort(403, 'Unauthorized');
         }
 

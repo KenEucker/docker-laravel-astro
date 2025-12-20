@@ -67,6 +67,7 @@ services:
       - ./backend/routes:/overrides/routes:ro
       - ./backend/config:/overrides/config:ro
       - ./backend/bootstrap:/overrides/bootstrap:ro
+      - ./backend/resources:/overrides/resources:ro
 
       # Isolate vendor directory (like node_modules for Astro)
       - laravel_vendor:/var/www/html/app/vendor
@@ -126,6 +127,30 @@ services:
       caddy: http://${INTRANET_HOSTNAME:-intranet.local.test}
       caddy.reverse_proxy: "{{upstreams 3000}}"
 
+  backend-check:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.check
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+      - backend_vendor:/app/vendor
+      - backend_cache:/tmp/phpstan
+    environment:
+      COMPOSER_HOME: /tmp/composer
+
+  frontend-check:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.check
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - astro_node_modules:/app/node_modules
+    networks:
+      - internal
+
+
 volumes:
   dbdata:
   laravel_app:
@@ -134,6 +159,8 @@ volumes:
   astro_node_modules:
   caddy_data:
   caddy_config:
+  backend_vendor:
+  backend_cache:
 
 networks:
   # Public-facing network: only Caddy binds host ports (when enabled),

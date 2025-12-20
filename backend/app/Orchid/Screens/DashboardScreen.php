@@ -10,6 +10,7 @@ use Orchid\Screen\Actions\Link;
 use Orchid\Screen\Screen;
 use Orchid\Screen\Sight;
 use Orchid\Support\Facades\Layout;
+use Orchid\Platform\Models\Role;
 
 class DashboardScreen extends Screen
 {
@@ -31,9 +32,8 @@ class DashboardScreen extends Screen
 
         // Count “admins” as users with global wildcard permission.
         // This matches your DefaultAdminUserSeeder which sets ['*' => true].
-        $adminCount = User::query()
-            ->whereJsonContains('permissions->*', true)
-            ->count();
+        $adminRole = Role::where('slug', 'admin')->first();
+        $adminCount = $adminRole?->users()->count() ?? 0;
 
         return [
             'metrics' => [

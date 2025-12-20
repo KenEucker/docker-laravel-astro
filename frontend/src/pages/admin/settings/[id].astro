@@ -10,9 +10,9 @@ if (admin.redirected === false) {
 const { id } = Astro.params;
 
 // Where Orchid is hosted. If your admin app is at admin.[company.com],
-// set PUBLIC_ORCHID_URL to https://admin.[company.com] (no trailing slash).
+// set APP_URL to https://admin.[company.com] (no trailing slash).
 const ORCHID_URL =
-  import.meta.env.PUBLIC_ORCHID_URL ??
+  import.meta.env.APP_URL ??
   "http://localhost:8000"; // fallback if running locally
 
 // Orchid user edit URL (typical)

@@ -1,9 +1,10 @@
 ---
 // src/pages/dashboard.astro
-import Layout from '../layouts/Layout.astro'
-import AvatarUpload from '../components/AvatarUpload.astro'
-import UserNotes from '../components/UserNotes.vue'
-import { requireAuth } from '../lib/auth'
+import Layout from '../../layouts/Layout.astro'
+import AvatarUpload from '../../components/AvatarUpload.astro'
+import UserNotes from '../../components/UserNotes.vue'
+import Block from '../../components/Block.vue'
+import { requireAuth } from '../../lib/auth'
 
 const user = await requireAuth(Astro)
 if (user.redirected === false) {
@@ -26,6 +27,12 @@ const avatarUrl =user?.avatar_path ? `${API}/storage/${String(user.avatar_path).
         </div>
       ) : (
         <>
+          <!-- Welcome Section -->
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8 transition-colors">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Welcome, {user.name}</h2>
+              <Block client:visible blockKey="dashboard.welcome" />
+          </div>
+          
           <!-- Profile Section -->
           <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8 transition-colors">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Profile</h2>

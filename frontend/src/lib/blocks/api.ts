@@ -5,7 +5,6 @@
  */
 
 const API_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:8000'
-
 export interface BlockData {
   key: string
   type: string
@@ -31,9 +30,13 @@ export interface BlocksListResponse {
  * @returns The block data or null if not found
  */
 export async function fetchBlock(key: string, preview = false): Promise<BlockData | null> {
+  console.log('Fetching block with key:', key, 'preview mode:', preview)
   try {
     const url = `${API_URL}/api/content/blocks/${key}${preview ? '?preview=1' : ''}`
-    const response = await fetch(url)
+    const response = await fetch(url, {
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+    })
 
     if (!response.ok) {
       if (response.status === 404) {

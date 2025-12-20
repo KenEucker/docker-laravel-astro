@@ -19,35 +19,80 @@ class BlockController extends Controller
      * Get a single block by key.
      *
      * Returns published blocks only, unless a valid preview signature is provided.
+     * For non-preview requests, visibility is enforced:
+     *  - public blocks are accessible to all
+     *  - auth/role blocks require an authenticated user (and access rules)
+     *
      * Responses are cache-friendly with ETag support.
      */
     public function show(Request $request, string $key): JsonResponse
     {
         $preview = $request->boolean('preview', false);
 
-        // If preview is requested, validate the signature
+        // Preview requests: validate signature and return any status (draft/published)
         if ($preview) {
             if (! config('blocks.preview.enabled')) {
                 return response()->json(['message' => 'Preview not available'], 403);
             }
 
-            // Validate signed URL
             if (! $request->hasValidSignature()) {
                 return response()->json(['message' => 'Invalid or expired preview link'], 403);
             }
 
-            // Fetch any status (draft or published)
             $block = Block::where('key', $key)->first();
         } else {
-            // Only published blocks for public requests
-            $cacheKey = "block:{$key}";
+            // Non-preview: only published blocks, but DO NOT filter by visibility here.
+            // We must fetch the block first, then enforce visibility via canAccessBlock().
+            // Otherwise "auth" blocks can never be returned even to authenticated users.
+
+            $userId = $request->user()?->id ?? 0;
+
+            // Cache strategy:
+            // - Public blocks: shared cache key (safe for everyone)
+            // - Restricted blocks: user-scoped cache key (prevents leakage)
+            //
+            // NOTE: We don't know visibility until we've loaded the block once.
+            // We'll do a small "read-through" flow: fetch uncached first if needed.
+            $block = null;
 
             if (config('blocks.cache.enabled')) {
-                $block = Cache::remember($cacheKey, config('blocks.cache.ttl'), function () use ($key) {
-                    return Block::where('key', $key)->published()->public()->first();
-                });
+                // Try shared public cache first (fast path)
+                $publicCacheKey = "block:{$key}:public";
+
+                $block = Cache::get($publicCacheKey);
+
+                if (! $block) {
+                    // Fetch published block (any visibility)
+                    $block = Block::where('key', $key)->published()->first();
+
+                    if ($block) {
+                        if ($block->isPublic()) {
+                            Cache::put($publicCacheKey, $block, config('blocks.cache.ttl'));
+                        } else {
+                            // Restricted: cache per-user to avoid leaking access
+                            $userCacheKey = "block:{$key}:user:{$userId}";
+                            Cache::put($userCacheKey, $block, config('blocks.cache.ttl'));
+                        }
+                    }
+                } else {
+                    // If we hit the public cache, great.
+                    // If this key is actually restricted, it wouldn't be in public cache.
+                }
+
+                // If not public cached and we have a user, try user cache for restricted blocks
+                if (! $block && $userId) {
+                    $userCacheKey = "block:{$key}:user:{$userId}";
+                    $block = Cache::remember($userCacheKey, config('blocks.cache.ttl'), function () use ($key) {
+                        return Block::where('key', $key)->published()->first();
+                    });
+                }
+
+                // If still null (public cache miss + no user cache hit), just load it
+                if (! $block) {
+                    $block = Block::where('key', $key)->published()->first();
+                }
             } else {
-                $block = Block::where('key', $key)->published()->public()->first();
+                $block = Block::where('key', $key)->published()->first();
             }
         }
 
@@ -55,8 +100,9 @@ class BlockController extends Controller
             return response()->json(['message' => 'Block not found'], 404);
         }
 
-        // Check visibility restrictions for non-preview requests
+        // Enforce visibility restrictions for non-preview requests
         if (! $preview && ! $this->canAccessBlock($request, $block)) {
+            // Intentionally 404 to avoid leaking existence
             return response()->json(['message' => 'Block not found'], 404);
         }
 
@@ -74,14 +120,13 @@ class BlockController extends Controller
             $response['published_at'] = $block->published_at?->toIso8601String();
         }
 
-        // Set cache headers
         return response()->json($response)
-            ->setEtag(md5($block->updated_at->timestamp))
+            ->setEtag(md5((string) $block->updated_at->timestamp))
             ->setLastModified($block->updated_at);
     }
 
     /**
-     * List published blocks, optionally filtered by key prefix.
+     * List published public blocks, optionally filtered by key prefix.
      *
      * Example: GET /api/content/blocks?prefix=homepage.
      */
@@ -90,6 +135,7 @@ class BlockController extends Controller
         $prefix = $request->query('prefix');
         $limit = min((int) $request->query('limit', 50), 100);
 
+        // Listing remains PUBLIC only (safe and intentional)
         $query = Block::published()->public();
 
         if ($prefix) {
@@ -126,7 +172,6 @@ class BlockController extends Controller
             return response()->json(['message' => 'Block not found'], 404);
         }
 
-        // Generate signed URL valid for the configured expiry time
         $expiry = now()->addSeconds(config('blocks.preview.expiry', 3600));
 
         $url = URL::temporarySignedRoute(
@@ -146,18 +191,15 @@ class BlockController extends Controller
      */
     protected function canAccessBlock(Request $request, Block $block): bool
     {
-        // Public blocks (visibility = null) are always accessible
         if ($block->isPublic()) {
             return true;
         }
 
-        // "auth" visibility requires authenticated user
         if ($block->visibility === 'auth') {
             return $request->user() !== null;
         }
 
-        // "role:xyz" visibility requires user with specific role/permission
-        if (str_starts_with($block->visibility, 'role:')) {
+        if (is_string($block->visibility) && str_starts_with($block->visibility, 'role:')) {
             $role = substr($block->visibility, 5);
             $user = $request->user();
 
@@ -165,11 +207,9 @@ class BlockController extends Controller
                 return false;
             }
 
-            // Check if user has the required permission/role
             return $user->hasAccess($role) || $user->hasAccess("role.{$role}");
         }
 
-        // Unknown visibility rule: deny access
         return false;
     }
 }

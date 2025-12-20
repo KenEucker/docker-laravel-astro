@@ -17,6 +17,7 @@ class SettingsServiceProvider extends ServiceProvider
         try {
             /** @var \App\Services\SettingsService $settings */
             $settings = $this->app->make(\App\Services\SettingsService::class);
+            $app_name = $settings->get('APP_NAME', env('APP_NAME', 'LarAstro'));
             logger()->info('SettingsServiceProvider boot APP_NAME', [
                 'db_or_env' => $settings->get('APP_NAME', 'LarAstro'),
                 'config_app_name_before' => config('app.name'),
@@ -25,7 +26,7 @@ class SettingsServiceProvider extends ServiceProvider
             // IMPORTANT: drive the app name used by your Blade header
             \Illuminate\Support\Facades\Config::set(
                 'app.name',
-                $settings->get('APP_NAME', env('APP_NAME', 'LarAstro'))
+                $app_name
             );
 
             // Orchid branding template (view name)

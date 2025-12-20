@@ -32,9 +32,9 @@ class BlockTypeRegistry
     /**
      * Check if a block type is registered.
      */
-    public static function exists(string $type): bool
+    public static function exists(string|null $type): bool
     {
-        return self::get($type) !== null;
+        return $type !== null && self::get($type) !== null;
     }
 
     /**

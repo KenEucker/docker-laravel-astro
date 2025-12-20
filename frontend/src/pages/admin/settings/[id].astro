@@ -1,0 +1,57 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import { requireAdmin } from "../../../lib/auth";
+
+const admin = await requireAdmin(Astro);
+if (admin.redirected === false) {
+  return admin;
+}
+
+const { id } = Astro.params;
+
+// Where Orchid is hosted. If your admin app is at admin.[company.com],
+// set PUBLIC_ORCHID_URL to https://admin.[company.com] (no trailing slash).
+const ORCHID_URL =
+  import.meta.env.PUBLIC_ORCHID_URL ??
+  "http://localhost:8000"; // fallback if running locally
+
+// Orchid user edit URL (typical)
+const orchidSettingUrl = `${ORCHID_URL}/admin/settings/${id}/edit`;
+---
+
+<Layout title={`Edit Setting #${id}`} isLoggedIn={true} isAdmin={true}>
+  <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <main class="max-w-4xl mx-auto px-4 py-8">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h1 class="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">
+          Edit Setting
+        </h1>
+
+        <p class="text-sm text-gray-600 dark:text-gray-300 mb-6">
+          Site settings are now managed in Orchid.
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-3">
+          <a
+            href={orchidSettingUrl}
+            class="inline-flex items-center justify-center px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+          >
+            Open in Orchid
+          </a>
+
+          <a
+            href="/admin/settings"
+            class="inline-flex items-center justify-center px-4 py-2 rounded bg-gray-200 text-gray-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+          >
+            Back to Settings
+          </a>
+        </div>
+
+        <div class="mt-6 text-xs text-gray-500 dark:text-gray-400">
+          <div><span class="font-semibold">Orchid URL:</span> {ORCHID_URL}</div>
+          <div><span class="font-semibold">Settings editor:</span> {orchidSettingUrl}</div>
+        </div>
+      </div>
+    </main>
+  </div>
+</Layout>

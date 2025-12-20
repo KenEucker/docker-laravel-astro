@@ -12,11 +12,15 @@ use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Fields\CheckBox;
 use Orchid\Screen\Fields\Group;
 use Orchid\Screen\Fields\Input;
+use Orchid\Screen\Fields\Label;
 use Orchid\Screen\Fields\Select;
 use Orchid\Screen\Fields\TextArea;
 use Orchid\Screen\Screen;
 use Orchid\Support\Facades\Layout;
 use Orchid\Support\Facades\Toast;
+use Orchid\Screen\Sight;
+use Orchid\Support\Color;
+use Illuminate\Support\Facades\Cache;
 
 class BlockEditScreen extends Screen
 {
@@ -31,6 +35,21 @@ class BlockEditScreen extends Screen
     public function query(Block $block): iterable
     {
         $this->block = $block;
+
+        $data = $block->data ?? [];
+
+        if (is_array($data)) {
+            if (($block->type ?? null) === 'hero') {
+                $data['ctas'] = json_encode($data['ctas'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            }
+
+            if (($block->type ?? null) === 'featureGrid') {
+                $data['items'] = json_encode($data['items'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            }
+
+            // ✅ assign the whole array back
+            $block->data = $data;
+        }
 
         return [
             'block' => $block,
@@ -133,14 +152,14 @@ class BlockEditScreen extends Screen
                         ->placeholder('e.g., homepage.hero')
                         ->help('Unique identifier used by frontend to request this block')
                         ->required()
-                        ->disabled($this->block->exists), // Disable editing key for existing blocks
+                        ->readonly($this->block->exists), // Disable editing key for existing blocks
 
                     Select::make('block.type')
                         ->title('Block Type')
                         ->options($blockTypes)
                         ->help('Type of content block')
                         ->required()
-                        ->disabled($this->block->exists), // Disable changing type for existing blocks
+                        ->readonly(), // Disable changing type for existing blocks
                 ]),
 
                 Group::make([
@@ -164,6 +183,20 @@ class BlockEditScreen extends Screen
 
             // Dynamic fields based on block type
             Layout::rows($this->getTypeSpecificFields()),
+
+            // ✅ read-only metadata section
+            Layout::legend('block', [
+                Sight::make('status', 'Status')->render(function (Block $block) {
+                    $color = $block->status === 'published' ? 'success' : 'secondary';
+                    return "<span class=\"badge bg-{$color}\">" . e(ucfirst($block->status)) . "</span>";
+                }),
+
+                Sight::make('updated_at', 'Last Updated')
+                    ->render(fn (Block $block) => $block->updated_at?->toDayDateTimeString() ?? '—'),
+
+                Sight::make('updated_by', 'Updated By')
+                    ->render(fn (Block $block) => $block->updatedByUser?->email ?? '—')
+            ]),
         ];
     }
 
@@ -216,9 +249,10 @@ class BlockEditScreen extends Screen
             TextArea::make('block.data.ctas')
                 ->title('CTAs (JSON)')
                 ->help('JSON array of {label, url} objects')
-                ->rows(3),
+                ->rows(6),
         ];
     }
+
 
     /**
      * Rich text block fields.
@@ -310,6 +344,7 @@ class BlockEditScreen extends Screen
         ];
     }
 
+
     /**
      * HTML block fields (restricted).
      */
@@ -377,6 +412,23 @@ class BlockEditScreen extends Screen
         }
 
         $type = $request->input('block.type');
+        // ✅ Decode JSON textarea fields back into arrays before validation/sanitize
+        $incomingData = (array) $request->input('block.data', []);
+
+        if ($type === 'hero') {
+            $incomingData = $this->decodeJsonTextArea($incomingData, 'ctas', 'CTAs');
+        }
+
+        if ($type === 'featureGrid') {
+            $incomingData = $this->decodeJsonTextArea($incomingData, 'items', 'Items');
+        }
+
+        // Write normalized data back into the request so validation sees an array
+        $request->merge([
+            'block' => array_merge((array) $request->input('block', []), [
+                'data' => $incomingData,
+            ]),
+        ]);
 
         // Validate type exists
         if (! BlockTypeRegistry::exists($type)) {
@@ -443,9 +495,15 @@ class BlockEditScreen extends Screen
         $block->updated_by = auth()->id();
 
         $block->save();
+        logger()->info('Block saved', [
+            'key' => $block->key,
+            'type' => $block->type,
+            'data' => $block->data,
+        ]);
 
         // Clear cache for this block
-        \Illuminate\Support\Facades\Cache::forget("block:{$block->key}");
+        Cache::forget("block:{$block->key}:public");
+        Cache::forget("block:{$block->key}:user:" . (auth()->id() ?? 0));
 
         Toast::success(__('Block saved successfully'));
     }
@@ -468,10 +526,42 @@ class BlockEditScreen extends Screen
         }
 
         // Clear cache
-        \Illuminate\Support\Facades\Cache::forget("block:{$block->key}");
+        Cache::forget("block:{$block->key}:public");
+        Cache::forget("block:{$block->key}:user:" . (auth()->id() ?? 0));
 
         $block->delete();
 
         Toast::success(__('Block deleted successfully'));
     }
+
+    protected function decodeJsonTextArea(array $data, string $field, string $label): array
+    {
+        if (! array_key_exists($field, $data)) {
+            return $data;
+        }
+
+        if (is_array($data[$field])) {
+            return $data; // already good
+        }
+
+        $raw = trim((string) $data[$field]);
+
+        if ($raw === '') {
+            $data[$field] = [];
+            return $data;
+        }
+
+        $decoded = json_decode($raw, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || ! is_array($decoded)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                "block.data.$field" => ["Invalid JSON for {$label}."],
+            ]);
+        }
+
+        $data[$field] = $decoded;
+
+        return $data;
+    }
+
 }
